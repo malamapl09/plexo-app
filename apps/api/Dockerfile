@@ -7,8 +7,8 @@ WORKDIR /app
 COPY packages/database/package.json packages/database/
 COPY packages/database/ packages/database/
 
-# Copy API package files
-COPY apps/api/package.json apps/api/package-lock.json apps/api/
+# Copy API package file
+COPY apps/api/package.json apps/api/
 
 # Install database dependencies + generate Prisma Client
 WORKDIR /app/packages/database
@@ -18,7 +18,7 @@ RUN npx prisma generate
 
 # Install API dependencies
 WORKDIR /app/apps/api
-RUN npm ci
+RUN npm install
 
 # Copy API source
 COPY apps/api/ .

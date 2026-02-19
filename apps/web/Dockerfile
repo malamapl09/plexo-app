@@ -3,14 +3,19 @@ FROM node:20-alpine AS builder
 
 WORKDIR /app
 
-# Copy package files
-COPY apps/web/package.json apps/web/package-lock.json ./
+# Copy package file
+COPY apps/web/package.json ./
 
 # Install dependencies
-RUN npm ci
+RUN npm install
 
 # Copy source
 COPY apps/web/ .
+
+# Build args for Next.js static build
+ARG NEXT_PUBLIC_API_URL
+ARG NEXT_PUBLIC_APP_NAME
+ARG NEXT_PUBLIC_APP_LOGO
 
 # Build with standalone output
 ENV NEXT_TELEMETRY_DISABLED=1
