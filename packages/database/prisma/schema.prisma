@@ -1,0 +1,1628 @@
+// Plexo Operations - Database Schema
+// Prisma ORM configuration for PostgreSQL
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../../../apps/api/node_modules/.prisma/client"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================
+// ENUMS
+// ============================================
+
+// ============================================
+// ROLES (DB-driven, replaces old UserRole enum)
+// ============================================
+
+model Role {
+  id             String        @id @default(uuid())
+  key            String        // UPPER_SNAKE_CASE, immutable after creation
+  label          String
+  description    String?
+  color          String        @default("gray")
+  level          Int           // Higher level can verify lower level work
+  isActive       Boolean       @default(true)
+  sortOrder      Int           @default(0)
+  organizationId String
+  organization   Organization  @relation(fields: [organizationId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([organizationId, key])
+  @@index([organizationId])
+  @@map("roles")
+}
+
+enum Priority {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+enum TaskStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  PENDING_VERIFICATION
+  VERIFIED
+  REJECTED
+  OVERDUE
+}
+
+enum SupplierType {
+  DISTRIBUTION_CENTER
+  THIRD_PARTY
+}
+
+enum ReceivingStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  WITH_ISSUE
+  DID_NOT_ARRIVE
+}
+
+enum DiscrepancyType {
+  MISSING
+  DAMAGED
+  WRONG_PRODUCT
+}
+
+enum IssueCategory {
+  MAINTENANCE
+  CLEANING
+  SECURITY
+  IT_SYSTEMS
+  PERSONNEL
+  INVENTORY
+}
+
+enum IssueStatus {
+  REPORTED
+  ASSIGNED
+  IN_PROGRESS
+  RESOLVED
+  PENDING_VERIFICATION
+  VERIFIED
+  REJECTED
+}
+
+enum AnnouncementType {
+  SYSTEM_ALERT
+  OPERATIONAL_UPDATE
+  POLICY_UPDATE
+  TRAINING
+  EMERGENCY
+  GENERAL
+}
+
+enum AnnouncementStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+enum DistributionType {
+  ALL_STORES
+  BY_REGION
+  SPECIFIC_STORES
+}
+
+enum VerificationStatus {
+  PENDING
+  VERIFIED
+  REJECTED
+}
+
+enum AuditAction {
+  CREATED
+  STATUS_CHANGED
+  ASSIGNED
+  COMPLETED
+  RESOLVED
+  VERIFICATION_SUBMITTED
+  VERIFIED
+  REJECTED
+  UPDATED
+  ESCALATED
+  DELETED
+  LOGIN
+  LOGOUT
+  APPROVED
+  REVISION_REQUESTED
+  RESUBMITTED
+  POINTS_AWARDED
+  BADGE_EARNED
+}
+
+enum AuditEntityType {
+  TASK_ASSIGNMENT
+  ISSUE
+  RECEIVING
+  USER
+  STORE
+  TASK
+  ANNOUNCEMENT
+  CHECKLIST
+  STORE_AUDIT
+  AUDIT_FINDING
+  CORRECTIVE_ACTION
+  PLANOGRAM_TEMPLATE
+  PLANOGRAM_SUBMISSION
+  CAMPAIGN
+  CAMPAIGN_SUBMISSION
+  TRAINING_COURSE
+  TRAINING_ENROLLMENT
+  POINT_TRANSACTION
+  BADGE
+}
+
+enum ChecklistFrequency {
+  DAILY
+  WEEKLY
+  MONTHLY
+  ONE_TIME
+}
+
+enum ChecklistSubmissionStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  EXPIRED
+}
+
+enum AuditVisitStatus {
+  SCHEDULED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+enum FindingSeverity {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum FindingStatus {
+  OPEN
+  ACTION_ASSIGNED
+  IN_PROGRESS
+  RESOLVED
+  VERIFIED
+}
+
+enum CorrectiveActionStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  OVERDUE
+  VERIFIED
+}
+
+enum QuestionType {
+  SCORE
+  YES_NO
+  TEXT
+}
+
+enum CAPASourceType {
+  AUDIT_FINDING
+  CHECKLIST_FAILURE
+  ISSUE
+  MANUAL
+}
+
+enum PlanogramSubmissionStatus {
+  PENDING_REVIEW
+  APPROVED
+  NEEDS_REVISION
+  RESUBMITTED
+}
+
+enum CampaignStatus {
+  DRAFT
+  ACTIVE
+  PAUSED
+  COMPLETED
+  CANCELLED
+}
+
+enum CampaignSubmissionStatus {
+  PENDING_REVIEW
+  APPROVED
+  NEEDS_REVISION
+  RESUBMITTED
+}
+
+enum CampaignType {
+  PROMOTION
+  SEASONAL
+  PRODUCT_LAUNCH
+  POS_DISPLAY
+  PRICE_CHANGE
+  OTHER
+}
+
+enum GamificationActionType {
+  TASK_COMPLETED
+  CHECKLIST_COMPLETED
+  AUDIT_COMPLETED
+  ISSUE_RESOLVED
+  ISSUE_REPORTED
+  CAPA_COMPLETED
+  CAPA_VERIFIED
+  PLANOGRAM_APPROVED
+  CAMPAIGN_EXECUTED
+  ON_TIME_COMPLETION
+  PERFECT_AUDIT_SCORE
+  TRAINING_COMPLETED
+  PERFECT_TRAINING_SCORE
+}
+
+// ============================================
+// TRAINING / LMS ENUMS
+// ============================================
+
+enum TrainingCourseCategory {
+  OPERATIONS
+  CASH_MANAGEMENT
+  CUSTOMER_SERVICE
+  INVENTORY
+  COMPLIANCE
+  SAFETY
+}
+
+enum TrainingLessonType {
+  TEXT
+  PDF
+  VIDEO
+  QUIZ
+}
+
+enum TrainingQuizQuestionType {
+  MULTIPLE_CHOICE
+  TRUE_FALSE
+}
+
+enum TrainingEnrollmentStatus {
+  ASSIGNED
+  IN_PROGRESS
+  COMPLETED
+  EXPIRED
+}
+
+enum TrainingProgressStatus {
+  NOT_STARTED
+  IN_PROGRESS
+  COMPLETED
+}
+
+enum StoreTier {
+  SMALL
+  MEDIUM
+  LARGE
+}
+
+// ============================================
+// ORGANIZATION (Multi-tenancy)
+// ============================================
+
+model Organization {
+  id           String   @id @default(uuid())
+  name         String
+  slug         String   @unique
+  domain       String?  @unique
+  logoUrl      String?
+  primaryColor String?  @default("#4F46E5")
+  timezone     String   @default("America/Santo_Domingo")
+  locale       String   @default("es")
+  isActive     Boolean  @default(true)
+  settings     Json?
+  plan         String   @default("free")
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  // Relations
+  users              User[]
+  roles              Role[]
+  regions            Region[]
+  stores             Store[]
+  departments        Department[]
+  tasks              Task[]
+  taskTemplates      TaskTemplate[]
+  announcements      Announcement[]
+  checklistTemplates ChecklistTemplate[]
+  auditTemplates     AuditTemplate[]
+  planogramTemplates PlanogramTemplate[]
+  campaigns          Campaign[]
+  trainingCourses    TrainingCourse[]
+  pointConfigs       PointConfig[]
+  badges             Badge[]
+  roleModuleAccess   RoleModuleAccess[]
+  taskAssignments    TaskAssignment[]
+  receivings         Receiving[]
+  issues             Issue[]
+  checklistSubmissions ChecklistSubmission[]
+  storeAudits        StoreAudit[]
+  correctiveActions  CorrectiveAction[]
+  planogramSubmissions PlanogramSubmission[]
+  campaignSubmissions  CampaignSubmission[]
+  trainingEnrollments  TrainingEnrollment[]
+  auditLogs          AuditLog[]
+  verifications      Verification[]
+  deviceTokens       DeviceToken[]
+  userPoints         UserPoints[]
+  pointTransactions  PointTransaction[]
+  storePoints        StorePoints[]
+  departmentPoints   DepartmentPoints[]
+
+  @@map("organizations")
+}
+
+// ============================================
+// CORE ENTITIES
+// ============================================
+
+model Region {
+  id             String        @id @default(uuid())
+  name           String
+  supervisorId   String?
+  supervisor     User?         @relation("RegionSupervisor", fields: [supervisorId], references: [id])
+  organizationId String
+  organization   Organization  @relation(fields: [organizationId], references: [id])
+
+  stores Store[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([supervisorId])
+  @@index([organizationId])
+  @@map("regions")
+}
+
+model Store {
+  id             String        @id @default(uuid())
+  name           String
+  code           String
+  address        String
+  latitude       Float?
+  longitude      Float?
+  regionId       String
+  region         Region        @relation(fields: [regionId], references: [id])
+  isActive       Boolean       @default(true)
+  tier           StoreTier?
+  tierOverride   Boolean       @default(false)
+  organizationId String
+  organization   Organization  @relation(fields: [organizationId], references: [id])
+
+  users           User[]
+  taskAssignments TaskAssignment[]
+  receivings      Receiving[]
+  issues          Issue[]
+  checklistSubmissions ChecklistSubmission[]
+  storeAudits          StoreAudit[]
+  correctiveActions    CorrectiveAction[]
+  planogramSubmissions PlanogramSubmission[]
+  campaignSubmissions  CampaignSubmission[]
+  storePoints          StorePoints?
+  storeDepartments     StoreDepartment[]
+  departmentPoints     DepartmentPoints[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([organizationId, code])
+  @@index([regionId])
+  @@index([organizationId])
+  @@map("stores")
+}
+
+model Department {
+  id             String        @id @default(uuid())
+  name           String
+  code           String
+  organizationId String
+  organization   Organization  @relation(fields: [organizationId], references: [id])
+
+  users            User[]
+  tasks            Task[]
+  templates        TaskTemplate[]
+  storeDepartments StoreDepartment[]
+  departmentPoints DepartmentPoints[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([organizationId, code])
+  @@index([organizationId])
+  @@map("departments")
+}
+
+model User {
+  id               String          @id @default(uuid())
+  email            String
+  passwordHash     String
+  name             String
+  role             String
+  storeId          String?
+  store            Store?          @relation(fields: [storeId], references: [id])
+  departmentId     String?
+  department       Department?     @relation(fields: [departmentId], references: [id])
+  isActive         Boolean         @default(true)
+  isSuperAdmin     Boolean         @default(false)
+  isPlatformAdmin  Boolean         @default(false)
+  refreshTokenHash String?
+  issueCategories  IssueCategory[] // Categories this user can handle for issue assignment
+  organizationId   String
+  organization     Organization    @relation(fields: [organizationId], references: [id])
+
+  // Relations
+  supervisedRegions Region[]         @relation("RegionSupervisor")
+  createdTasks      Task[]           @relation("TaskCreator")
+  createdTemplates  TaskTemplate[]   @relation("TemplateCreator")
+  completedTasks    TaskAssignment[] @relation("TaskCompleter")
+  reportedIssues    Issue[]          @relation("IssueReporter")
+  assignedIssues    Issue[]          @relation("IssueAssignee")
+  verifiedReceiving Receiving[]
+  deviceTokens      DeviceToken[]
+
+  // Announcements relations
+  createdAnnouncements    Announcement[]     @relation("AnnouncementCreator")
+  announcementViews       AnnouncementView[]
+  announcementAcks        AnnouncementAck[]
+
+  // Audit & Verification relations
+  auditLogs                AuditLog[]       @relation("AuditPerformer")
+  submittedVerifications   Verification[]   @relation("VerificationSubmitter")
+  processedVerifications   Verification[]   @relation("VerificationVerifier")
+  verifiedTaskAssignments  TaskAssignment[] @relation("TaskVerifier")
+  verifiedIssues           Issue[]          @relation("IssueVerifier")
+  resolvedIssues           Issue[]          @relation("IssueResolver")
+
+  // Checklist relations
+  createdChecklistTemplates ChecklistTemplate[] @relation("ChecklistCreator")
+  checklistSubmissions      ChecklistSubmission[] @relation("ChecklistSubmitter")
+  checklistResponses        ChecklistResponse[]  @relation("ChecklistResponder")
+
+  // Store Audit relations
+  createdAuditTemplates     AuditTemplate[]      @relation("AuditTemplateCreator")
+  conductedAudits           StoreAudit[]         @relation("AuditAuditor")
+  assignedCorrectiveActions CorrectiveAction[]   @relation("CorrectiveActionAssignee")
+  verifiedCorrectiveActions CorrectiveAction[]   @relation("CorrectiveActionVerifier")
+  createdCorrectiveActions  CorrectiveAction[]   @relation("CorrectiveActionCreator")
+
+  // Planogram relations
+  createdPlanograms    PlanogramTemplate[]   @relation("PlanogramCreator")
+  planogramSubmissions PlanogramSubmission[] @relation("PlanogramSubmitter")
+  planogramReviews     PlanogramSubmission[] @relation("PlanogramReviewer")
+
+  // Campaign relations
+  campaignsCreated      Campaign[]             @relation("CampaignCreator")
+  campaignSubmissions   CampaignSubmission[]   @relation("CampaignSubmitter")
+  campaignReviews       CampaignSubmission[]   @relation("CampaignReviewer")
+
+  // Gamification relations
+  pointsBalance     UserPoints?
+  pointTransactions PointTransaction[]
+  userBadges        UserBadge[]
+
+  // Training / LMS relations
+  createdTrainingCourses TrainingCourse[]     @relation("TrainingCourseCreator")
+  trainingEnrollments    TrainingEnrollment[] @relation("TrainingEnrolled")
+  trainingAssignments    TrainingEnrollment[] @relation("TrainingAssigner")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([organizationId, email])
+  @@index([storeId])
+  @@index([departmentId])
+  @@index([organizationId])
+  @@map("users")
+}
+
+// ============================================
+// TASKS MODULE (Plan del Día)
+// ============================================
+
+model TaskTemplate {
+  id          String  @id @default(uuid())
+  name        String
+  description String?
+
+  // Default task configuration
+  departmentId         String?
+  department           Department?      @relation(fields: [departmentId], references: [id])
+  priority             Priority         @default(MEDIUM)
+  defaultScheduledTime String?          // Time of day (HH:mm)
+  defaultDueTime       String?          // Time of day (HH:mm)
+
+  // Distribution defaults
+  distributionType  DistributionType @default(ALL_STORES)
+  defaultRegionIds  String[]
+  defaultStoreIds   String[]
+
+  // Recurring configuration
+  isRecurring   Boolean @default(false)
+  recurringRule Json?   // RRULE format
+
+  // Metadata
+  isActive    Boolean @default(true)
+  createdById String?
+  createdBy   User?   @relation("TemplateCreator", fields: [createdById], references: [id])
+
+  tasks Task[]
+
+  organizationId   String
+  organization     Organization  @relation(fields: [organizationId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([departmentId])
+  @@index([createdById])
+  @@index([organizationId])
+  @@map("task_templates")
+}
+
+model Task {
+  id            String        @id @default(uuid())
+  title         String
+  description   String?
+  departmentId  String?
+  department    Department?   @relation(fields: [departmentId], references: [id])
+  priority      Priority      @default(MEDIUM)
+  scheduledTime DateTime?
+  dueTime       DateTime?
+  createdById   String
+  createdBy     User          @relation("TaskCreator", fields: [createdById], references: [id])
+  templateId    String?
+  template      TaskTemplate? @relation(fields: [templateId], references: [id])
+  isRecurring   Boolean       @default(false)
+  recurringRule Json? // RRULE format for recurring tasks
+
+  assignments TaskAssignment[]
+
+  organizationId   String
+  organization     Organization  @relation(fields: [organizationId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([departmentId])
+  @@index([createdById])
+  @@index([templateId])
+  @@index([organizationId])
+  @@map("tasks")
+}
+
+model TaskAssignment {
+  id            String     @id @default(uuid())
+  taskId        String
+  task          Task       @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  storeId       String
+  store         Store      @relation(fields: [storeId], references: [id])
+  status        TaskStatus @default(PENDING)
+  assignedAt    DateTime   @default(now())
+  completedAt   DateTime?
+  completedById String?
+  completedBy   User?      @relation("TaskCompleter", fields: [completedById], references: [id])
+  notes         String?
+  photoUrls     String[]
+
+  // Verification fields
+  verificationStatus  VerificationStatus?
+  verifiedById        String?
+  verifiedBy          User?              @relation("TaskVerifier", fields: [verifiedById], references: [id])
+  verifiedAt          DateTime?
+  rejectionReason     String?
+
+  organizationId   String
+  organization     Organization  @relation(fields: [organizationId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([taskId, storeId])
+  @@index([storeId])
+  @@index([completedById])
+  @@index([verifiedById])
+  @@index([status])
+  @@index([organizationId])
+  @@map("task_assignments")
+}
+
+// ============================================
+// RECEIVING MODULE (Recepciones)
+// ============================================
+
+model Receiving {
+  id            String          @id @default(uuid())
+  storeId       String
+  store         Store           @relation(fields: [storeId], references: [id])
+  supplierType  SupplierType
+  supplierName  String
+  poNumber      String?
+  scheduledTime DateTime?
+  arrivalTime   DateTime?
+  status        ReceivingStatus @default(PENDING)
+  verifiedById  String?
+  verifiedBy    User?           @relation(fields: [verifiedById], references: [id])
+  notes         String?
+  photoUrls     String[]
+  signatureUrl  String?
+  driverName    String?
+  truckPlate    String?
+  itemCount     Int?
+
+  discrepancies Discrepancy[]
+
+  organizationId   String
+  organization     Organization  @relation(fields: [organizationId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([storeId])
+  @@index([verifiedById])
+  @@index([status])
+  @@index([organizationId])
+  @@map("receivings")
+}
+
+model Discrepancy {
+  id          String          @id @default(uuid())
+  receivingId String
+  receiving   Receiving       @relation(fields: [receivingId], references: [id], onDelete: Cascade)
+  type        DiscrepancyType
+  productInfo String
+  quantity    Int?
+  notes       String?
+  photoUrls   String[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([receivingId])
+  @@map("discrepancies")
+}
+
+// ============================================
+// ISSUES MODULE (Incidencias)
+// ============================================
+
+model Issue {
+  id              String        @id @default(uuid())
+  storeId         String
+  store           Store         @relation(fields: [storeId], references: [id])
+  category        IssueCategory
+  priority        Priority      @default(MEDIUM)
+  title           String
+  description     String
+  status          IssueStatus   @default(REPORTED)
+  reportedById    String
+  reportedBy      User          @relation("IssueReporter", fields: [reportedById], references: [id])
+  assignedToId    String?
+  assignedTo      User?         @relation("IssueAssignee", fields: [assignedToId], references: [id])
+  photoUrls       String[]
+  videoUrls       String[]
+  resolutionNotes String?
+  resolvedAt      DateTime?
+  escalatedAt     DateTime?
+
+  // Verification fields
+  verificationStatus  VerificationStatus?
+  resolvedById        String?
+  resolvedBy          User?              @relation("IssueResolver", fields: [resolvedById], references: [id])
+  verifiedById        String?
+  verifiedBy          User?              @relation("IssueVerifier", fields: [verifiedById], references: [id])
+  verifiedAt          DateTime?
+  rejectionReason     String?
+
+  organizationId   String
+  organization     Organization  @relation(fields: [organizationId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([storeId])
+  @@index([reportedById])
+  @@index([assignedToId])
+  @@index([resolvedById])
+  @@index([verifiedById])
+  @@index([status])
+  @@index([organizationId])
+  @@map("issues")
+}
+
+// ============================================
+// NOTIFICATIONS MODULE
+// ============================================
+
+enum DevicePlatform {
+  ANDROID
+  IOS
+  WEB
+}
+
+model DeviceToken {
+  id           String         @id @default(uuid())
+  token        String         @unique
+  userId       String
+  user         User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  platform     DevicePlatform
+  deviceName   String?
+  appVersion   String?
+  lastActiveAt DateTime       @default(now())
+
+  organizationId   String
+  organization     Organization  @relation(fields: [organizationId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+  @@index([organizationId])
+  @@map("device_tokens")
+}
+
+// ============================================
+// ANNOUNCEMENTS MODULE (Comunicaciones)
+// ============================================
+
+model Announcement {
+  id       String             @id @default(uuid())
+  title    String
+  content  String             // Rich text/markdown
+  summary  String?            // Brief preview for list views
+  type     AnnouncementType   @default(GENERAL)
+  priority Priority           @default(MEDIUM)
+  status   AnnouncementStatus @default(DRAFT)
+
+  // Targeting - who should see this announcement
+  scope           String     @default("ALL") // ALL, STORES, REGIONS, ROLES
+  targetStoreIds  String[]
+  targetRegionIds String[]
+  targetRoles     String[]
+
+  // Content attachments
+  imageUrl       String?
+  attachmentUrls String[]
+
+  // Acknowledgment - whether users need to confirm they've read it
+  requiresAck Boolean @default(false)
+
+  // Author
+  createdById String
+  createdBy   User   @relation("AnnouncementCreator", fields: [createdById], references: [id])
+
+  // Timeline
+  publishedAt  DateTime?
+  scheduledFor DateTime?
+  expiresAt    DateTime?
+
+  // Engagement tracking
+  views           AnnouncementView[]
+  acknowledgments AnnouncementAck[]
+
+  organizationId   String
+  organization     Organization  @relation(fields: [organizationId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([createdById])
+  @@index([status])
+  @@index([organizationId])
+  @@map("announcements")
+}
+
+model AnnouncementView {
+  id             String       @id @default(uuid())
+  announcementId String
+  announcement   Announcement @relation(fields: [announcementId], references: [id], onDelete: Cascade)
+  userId         String
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  viewedAt       DateTime     @default(now())
+
+  @@unique([announcementId, userId])
+  @@map("announcement_views")
+}
+
+model AnnouncementAck {
+  id             String       @id @default(uuid())
+  announcementId String
+  announcement   Announcement @relation(fields: [announcementId], references: [id], onDelete: Cascade)
+  userId         String
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  acknowledgedAt DateTime     @default(now())
+
+  @@unique([announcementId, userId])
+  @@map("announcement_acks")
+}
+
+// ============================================
+// AUDIT & VERIFICATION MODULE
+// ============================================
+
+model AuditLog {
+  id              String          @id @default(uuid())
+  entityType      AuditEntityType
+  entityId        String
+  action          AuditAction
+  performedById   String
+  performedBy     User            @relation("AuditPerformer", fields: [performedById], references: [id])
+  performedByRole String
+  previousValue   Json?
+  newValue        Json?
+  fieldChanged    String?
+  notes           String?
+
+  organizationId   String
+  organization     Organization  @relation(fields: [organizationId], references: [id])
+
+  createdAt DateTime @default(now())
+
+  @@index([entityType, entityId])
+  @@index([performedById])
+  @@index([createdAt])
+  @@index([organizationId])
+  @@map("audit_logs")
+}
+
+model Verification {
+  id              String             @id @default(uuid())
+  entityType      AuditEntityType
+  entityId        String
+  submittedById   String
+  submittedBy     User               @relation("VerificationSubmitter", fields: [submittedById], references: [id])
+  submittedByRole String
+  submittedAt     DateTime           @default(now())
+  status          VerificationStatus @default(PENDING)
+  verifiedById    String?
+  verifiedBy      User?              @relation("VerificationVerifier", fields: [verifiedById], references: [id])
+  verifiedByRole  String?
+  verifiedAt      DateTime?
+  rejectionReason String?
+
+  organizationId   String
+  organization     Organization  @relation(fields: [organizationId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([entityType, entityId])
+  @@index([status])
+  @@index([submittedById])
+  @@index([verifiedById])
+  @@index([organizationId])
+  @@map("verifications")
+}
+
+// ============================================
+// CHECKLISTS / DIGITAL SOPs MODULE
+// ============================================
+
+model ChecklistTemplate {
+  id              String             @id @default(uuid())
+  title           String
+  description     String?
+  departmentId    String?
+  frequency       ChecklistFrequency
+  scope           String             @default("ALL") // ALL, STORES, REGIONS
+  targetStoreIds  String[]
+  targetRegionIds String[]
+  isActive        Boolean            @default(true)
+  createdById     String
+  createdBy       User               @relation("ChecklistCreator", fields: [createdById], references: [id])
+
+  items       ChecklistItem[]
+  submissions ChecklistSubmission[]
+
+  organizationId   String
+  organization     Organization  @relation(fields: [organizationId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([createdById])
+  @@index([organizationId])
+  @@map("checklist_templates")
+}
+
+model ChecklistItem {
+  id            String            @id @default(uuid())
+  templateId    String
+  template      ChecklistTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  order         Int
+  title         String
+  description   String?
+  requiresPhoto Boolean           @default(false)
+  requiresNote  Boolean           @default(false)
+
+  responses ChecklistResponse[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([templateId])
+  @@map("checklist_items")
+}
+
+model ChecklistSubmission {
+  id          String                    @id @default(uuid())
+  templateId  String
+  template    ChecklistTemplate         @relation(fields: [templateId], references: [id])
+  storeId     String
+  store       Store                     @relation(fields: [storeId], references: [id])
+  date        DateTime                  @db.Date
+  status      ChecklistSubmissionStatus @default(PENDING)
+  submittedById String
+  submittedBy   User                    @relation("ChecklistSubmitter", fields: [submittedById], references: [id])
+  completedAt   DateTime?
+  score         Float?
+
+  responses ChecklistResponse[]
+
+  organizationId   String
+  organization     Organization  @relation(fields: [organizationId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([templateId, storeId, date])
+  @@index([storeId])
+  @@index([submittedById])
+  @@index([organizationId])
+  @@map("checklist_submissions")
+}
+
+model ChecklistResponse {
+  id            String              @id @default(uuid())
+  submissionId  String
+  submission    ChecklistSubmission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+  itemId        String
+  item          ChecklistItem       @relation(fields: [itemId], references: [id])
+  isCompleted   Boolean             @default(false)
+  completedById String?
+  completedBy   User?               @relation("ChecklistResponder", fields: [completedById], references: [id])
+  completedAt   DateTime?
+  photoUrls     String[]
+  notes         String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([submissionId, itemId])
+  @@index([submissionId])
+  @@map("checklist_responses")
+}
+
+// ============================================
+// STORE AUDITS & INSPECTIONS MODULE
+// ============================================
+
+model AuditTemplate {
+  id          String  @id @default(uuid())
+  name        String
+  description String?
+  isActive    Boolean @default(true)
+  createdById String
+  createdBy   User    @relation("AuditTemplateCreator", fields: [createdById], references: [id])
+
+  sections    AuditSection[]
+  storeAudits StoreAudit[]
+
+  organizationId   String
+  organization     Organization  @relation(fields: [organizationId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([createdById])
+  @@index([organizationId])
+  @@map("audit_templates")
+}
+
+model AuditSection {
+  id          String        @id @default(uuid())
+  templateId  String
+  template    AuditTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  order       Int
+  title       String
+  description String?
+  weight      Float         @default(1.0)
+
+  questions AuditQuestion[]
+  findings  AuditFinding[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([templateId])
+  @@map("audit_sections")
+}
+
+model AuditQuestion {
+  id            String       @id @default(uuid())
+  sectionId     String
+  section       AuditSection @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+  order         Int
+  text          String
+  questionType  QuestionType @default(SCORE)
+  maxScore      Int          @default(5)
+  requiresPhoto Boolean      @default(false)
+
+  answers AuditAnswer[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([sectionId])
+  @@map("audit_questions")
+}
+
+model StoreAudit {
+  id               String           @id @default(uuid())
+  templateId       String
+  template         AuditTemplate    @relation(fields: [templateId], references: [id])
+  storeId          String
+  store            Store            @relation(fields: [storeId], references: [id])
+  scheduledDate    DateTime         @db.Date
+  status           AuditVisitStatus @default(SCHEDULED)
+  auditorId        String
+  auditor          User             @relation("AuditAuditor", fields: [auditorId], references: [id])
+  startedAt        DateTime?
+  completedAt      DateTime?
+  overallScore     Float?
+  actualScore      Float?
+  maxPossibleScore Float?
+  notes            String?
+
+  answers  AuditAnswer[]
+  findings AuditFinding[]
+
+  organizationId   String
+  organization     Organization  @relation(fields: [organizationId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([storeId, scheduledDate])
+  @@index([auditorId])
+  @@index([organizationId])
+  @@map("store_audits")
+}
+
+model AuditAnswer {
+  id           String     @id @default(uuid())
+  storeAuditId String
+  storeAudit   StoreAudit @relation(fields: [storeAuditId], references: [id], onDelete: Cascade)
+  questionId   String
+  question     AuditQuestion @relation(fields: [questionId], references: [id])
+  score        Int?
+  booleanValue Boolean?
+  textValue    String?
+  photoUrls    String[]
+  notes        String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([storeAuditId, questionId])
+  @@map("audit_answers")
+}
+
+model AuditFinding {
+  id           String          @id @default(uuid())
+  storeAuditId String
+  storeAudit   StoreAudit      @relation(fields: [storeAuditId], references: [id], onDelete: Cascade)
+  sectionId    String?
+  section      AuditSection?   @relation(fields: [sectionId], references: [id])
+  severity     FindingSeverity
+  title        String
+  description  String
+  photoUrls    String[]
+  status       FindingStatus   @default(OPEN)
+
+  correctiveAction CorrectiveAction?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([storeAuditId])
+  @@map("audit_findings")
+}
+
+model CorrectiveAction {
+  id                  String                 @id @default(uuid())
+  findingId           String?                @unique
+  finding             AuditFinding?          @relation(fields: [findingId], references: [id], onDelete: Cascade)
+  sourceType          CAPASourceType         @default(AUDIT_FINDING)
+  sourceId            String?
+  title               String?
+  storeId             String?
+  store               Store?                 @relation(fields: [storeId], references: [id])
+  priority            Priority               @default(MEDIUM)
+  assignedToId        String
+  assignedTo          User                   @relation("CorrectiveActionAssignee", fields: [assignedToId], references: [id])
+  createdById         String?
+  createdBy           User?                  @relation("CorrectiveActionCreator", fields: [createdById], references: [id])
+  dueDate             DateTime               @db.Date
+  status              CorrectiveActionStatus @default(PENDING)
+  description         String
+  completionNotes     String?
+  completionPhotoUrls String[]
+  completedAt         DateTime?
+  verifiedById        String?
+  verifiedBy          User?                  @relation("CorrectiveActionVerifier", fields: [verifiedById], references: [id])
+  verifiedAt          DateTime?
+
+  organizationId   String
+  organization     Organization  @relation(fields: [organizationId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([assignedToId])
+  @@index([verifiedById])
+  @@index([storeId])
+  @@index([status])
+  @@index([sourceType, sourceId])
+  @@index([organizationId])
+  @@map("corrective_actions")
+}
+
+// ============================================
+// VISUAL MERCHANDISING / PLANOGRAM COMPLIANCE
+// ============================================
+
+model PlanogramTemplate {
+  id                String   @id @default(uuid())
+  name              String
+  description       String?
+  referencePhotoUrls String[]
+  targetStoreIds    String[]
+  targetRegionIds   String[]
+  dueDate           DateTime?
+  isActive          Boolean  @default(true)
+  createdById       String
+  createdBy         User     @relation("PlanogramCreator", fields: [createdById], references: [id])
+
+  submissions PlanogramSubmission[]
+
+  organizationId   String
+  organization     Organization  @relation(fields: [organizationId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([createdById])
+  @@index([organizationId])
+  @@map("planogram_templates")
+}
+
+model PlanogramSubmission {
+  id            String                    @id @default(uuid())
+  templateId    String
+  template      PlanogramTemplate         @relation(fields: [templateId], references: [id])
+  storeId       String
+  store         Store                     @relation(fields: [storeId], references: [id])
+  submittedById String
+  submittedBy   User                      @relation("PlanogramSubmitter", fields: [submittedById], references: [id])
+  photoUrls     String[]
+  notes         String?
+  status        PlanogramSubmissionStatus @default(PENDING_REVIEW)
+  reviewedById  String?
+  reviewedBy    User?                     @relation("PlanogramReviewer", fields: [reviewedById], references: [id])
+  reviewNotes   String?
+  reviewedAt    DateTime?
+  submittedAt   DateTime                  @default(now())
+
+  organizationId   String
+  organization     Organization  @relation(fields: [organizationId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([templateId, storeId])
+  @@index([templateId])
+  @@index([storeId])
+  @@index([status])
+  @@index([organizationId])
+  @@map("planogram_submissions")
+}
+
+// ============================================
+// CAMPAIGN / PROMOTION EXECUTION
+// ============================================
+
+model Campaign {
+  id                String         @id @default(uuid())
+  title             String
+  description       String?
+  type              CampaignType
+  priority          Priority
+  status            CampaignStatus @default(DRAFT)
+  startDate         DateTime
+  endDate           DateTime
+  referencePhotoUrls String[]
+  materialsList     String[]
+  instructions      String?
+  targetStoreIds    String[]
+  targetRegionIds   String[]
+  createdById       String
+  createdBy         User           @relation("CampaignCreator", fields: [createdById], references: [id])
+
+  submissions CampaignSubmission[]
+
+  organizationId   String
+  organization     Organization  @relation(fields: [organizationId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([status])
+  @@index([createdById])
+  @@index([startDate, endDate])
+  @@index([organizationId])
+  @@map("campaigns")
+}
+
+model CampaignSubmission {
+  id            String                   @id @default(uuid())
+  campaignId    String
+  campaign      Campaign                 @relation(fields: [campaignId], references: [id])
+  storeId       String
+  store         Store                    @relation(fields: [storeId], references: [id])
+  submittedById String
+  submittedBy   User                     @relation("CampaignSubmitter", fields: [submittedById], references: [id])
+  photoUrls     String[]
+  notes         String?
+  status        CampaignSubmissionStatus @default(PENDING_REVIEW)
+  reviewedById  String?
+  reviewedBy    User?                    @relation("CampaignReviewer", fields: [reviewedById], references: [id])
+  reviewNotes   String?
+  reviewedAt    DateTime?
+  submittedAt   DateTime                 @default(now())
+
+  organizationId   String
+  organization     Organization  @relation(fields: [organizationId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([campaignId, storeId])
+  @@index([campaignId])
+  @@index([storeId])
+  @@index([status])
+  @@index([organizationId])
+  @@map("campaign_submissions")
+}
+
+// ============================================
+// GAMIFICATION
+// ============================================
+
+model PointConfig {
+  id          String               @id @default(uuid())
+  actionType  GamificationActionType
+  points      Int
+  description String?
+  isActive    Boolean              @default(true)
+
+  organizationId   String
+  organization     Organization  @relation(fields: [organizationId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([organizationId, actionType])
+  @@index([organizationId])
+  @@map("point_configs")
+}
+
+model UserPoints {
+  id            String @id @default(uuid())
+  userId        String @unique
+  user          User   @relation(fields: [userId], references: [id])
+  totalPoints   Int    @default(0)
+  weeklyPoints  Int    @default(0)
+  monthlyPoints Int    @default(0)
+
+  organizationId   String
+  organization     Organization  @relation(fields: [organizationId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([totalPoints])
+  @@index([organizationId])
+  @@map("user_points")
+}
+
+model PointTransaction {
+  id                String               @id @default(uuid())
+  userId            String
+  user              User                 @relation(fields: [userId], references: [id])
+  actionType        GamificationActionType
+  points            Int
+  entityType        String?
+  entityId          String?
+  notes             String?
+  isFirstAttempt    Boolean              @default(true)
+  qualityMultiplier Float                @default(1.0)
+
+  organizationId   String
+  organization     Organization  @relation(fields: [organizationId], references: [id])
+
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([createdAt])
+  @@index([organizationId])
+  @@map("point_transactions")
+}
+
+model Badge {
+  id          String  @id @default(uuid())
+  name        String
+  description String?
+  iconUrl     String?
+  criteria    Json
+  isActive    Boolean @default(true)
+
+  userBadges UserBadge[]
+
+  organizationId   String
+  organization     Organization  @relation(fields: [organizationId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([organizationId, name])
+  @@index([organizationId])
+  @@map("badges")
+}
+
+model UserBadge {
+  id       String   @id @default(uuid())
+  userId   String
+  user     User     @relation(fields: [userId], references: [id])
+  badgeId  String
+  badge    Badge    @relation(fields: [badgeId], references: [id])
+  earnedAt DateTime @default(now())
+
+  @@unique([userId, badgeId])
+  @@map("user_badges")
+}
+
+model StoreDepartment {
+  id           String     @id @default(uuid())
+  storeId      String
+  store        Store      @relation(fields: [storeId], references: [id])
+  departmentId String
+  department   Department @relation(fields: [departmentId], references: [id])
+  isActive     Boolean    @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([storeId, departmentId])
+  @@index([storeId])
+  @@index([departmentId])
+  @@map("store_departments")
+}
+
+model StorePoints {
+  id                    String  @id @default(uuid())
+  storeId               String  @unique
+  store                 Store   @relation(fields: [storeId], references: [id])
+  totalPoints           Int     @default(0)
+  weeklyPoints          Int     @default(0)
+  monthlyPoints         Int     @default(0)
+  perCapitaTotal        Float   @default(0)
+  perCapitaWeekly       Float   @default(0)
+  perCapitaMonthly      Float   @default(0)
+  weeklyComplianceRate  Float?
+  monthlyComplianceRate Float?
+  activeEmployeeCount   Int     @default(0)
+
+  organizationId   String
+  organization     Organization  @relation(fields: [organizationId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([perCapitaWeekly])
+  @@index([perCapitaMonthly])
+  @@index([perCapitaTotal])
+  @@index([organizationId])
+  @@map("store_points")
+}
+
+model DepartmentPoints {
+  id                  String     @id @default(uuid())
+  storeId             String
+  store               Store      @relation(fields: [storeId], references: [id])
+  departmentId        String
+  department          Department @relation(fields: [departmentId], references: [id])
+  totalPoints         Int        @default(0)
+  weeklyPoints        Int        @default(0)
+  monthlyPoints       Int        @default(0)
+  perCapitaTotal      Float      @default(0)
+  perCapitaWeekly     Float      @default(0)
+  perCapitaMonthly    Float      @default(0)
+  activeEmployeeCount Int        @default(0)
+
+  organizationId   String
+  organization     Organization  @relation(fields: [organizationId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([storeId, departmentId])
+  @@index([perCapitaWeekly])
+  @@index([perCapitaMonthly])
+  @@index([perCapitaTotal])
+  @@index([organizationId])
+  @@map("department_points")
+}
+
+// ============================================
+// TRAINING / LMS MODULE
+// ============================================
+
+model TrainingCourse {
+  id                      String                  @id @default(uuid())
+  title                   String
+  description             String?
+  category                TrainingCourseCategory
+  passingScore            Int                     @default(70)
+  isMandatory             Boolean                 @default(false)
+  isActive                Boolean                 @default(true)
+  scope                   String                  @default("ALL") // ALL, STORES, ROLES
+  targetStoreIds          String[]
+  targetRoleIds           String[]
+  certificationValidDays  Int?
+  estimatedDurationMinutes Int?
+  createdById             String
+  createdBy               User                    @relation("TrainingCourseCreator", fields: [createdById], references: [id])
+
+  lessons     TrainingLesson[]
+  enrollments TrainingEnrollment[]
+
+  organizationId   String
+  organization     Organization  @relation(fields: [organizationId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([createdById])
+  @@index([category])
+  @@index([isActive])
+  @@index([isMandatory])
+  @@index([organizationId])
+  @@map("training_courses")
+}
+
+model TrainingLesson {
+  id               String             @id @default(uuid())
+  courseId          String
+  course           TrainingCourse     @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  sortOrder        Int
+  title            String
+  type             TrainingLessonType
+  content          String?            // Rich text for TEXT type
+  fileUrl          String?            // URL for PDF/VIDEO type
+  estimatedMinutes Int?
+  isRequired       Boolean            @default(true)
+  isActive         Boolean            @default(true)
+
+  questions TrainingQuizQuestion[]
+  progress  TrainingProgress[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([courseId])
+  @@map("training_lessons")
+}
+
+model TrainingQuizQuestion {
+  id           String                    @id @default(uuid())
+  lessonId     String
+  lesson       TrainingLesson            @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  sortOrder    Int
+  questionText String
+  type         TrainingQuizQuestionType
+  options      Json                      // Array of { text: string, isCorrect: boolean }
+  explanation  String?
+  isActive     Boolean                   @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([lessonId])
+  @@map("training_quiz_questions")
+}
+
+model TrainingEnrollment {
+  id                  String                    @id @default(uuid())
+  courseId             String
+  course              TrainingCourse            @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  userId              String
+  user                User                      @relation("TrainingEnrolled", fields: [userId], references: [id])
+  status              TrainingEnrollmentStatus  @default(ASSIGNED)
+  score               Float?
+  startedAt           DateTime?
+  completedAt         DateTime?
+  certificateExpiresAt DateTime?
+  assignedById        String?
+  assignedBy          User?                     @relation("TrainingAssigner", fields: [assignedById], references: [id])
+
+  progress TrainingProgress[]
+
+  organizationId   String
+  organization     Organization  @relation(fields: [organizationId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([courseId, userId])
+  @@index([userId])
+  @@index([status])
+  @@index([courseId, status])
+  @@index([organizationId])
+  @@map("training_enrollments")
+}
+
+model TrainingProgress {
+  id           String                 @id @default(uuid())
+  enrollmentId String
+  enrollment   TrainingEnrollment     @relation(fields: [enrollmentId], references: [id], onDelete: Cascade)
+  lessonId     String
+  lesson       TrainingLesson         @relation(fields: [lessonId], references: [id])
+  status       TrainingProgressStatus @default(NOT_STARTED)
+  score        Float?
+  attempts     Int                    @default(0)
+  completedAt  DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([enrollmentId, lessonId])
+  @@index([enrollmentId])
+  @@map("training_progress")
+}
+
+// ============================================
+// MODULE ACCESS PERMISSIONS
+// ============================================
+
+model RoleModuleAccess {
+  id        String   @id @default(uuid())
+  role      String
+  module    String
+  hasAccess Boolean  @default(true)
+
+  organizationId   String
+  organization     Organization  @relation(fields: [organizationId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([organizationId, role, module])
+  @@index([role])
+  @@index([organizationId])
+  @@map("role_module_access")
+}

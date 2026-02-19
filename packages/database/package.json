@@ -1,0 +1,25 @@
+{
+  "name": "@plexo/database",
+  "version": "1.0.0",
+  "description": "Plexo Operations - Prisma Database Package",
+  "main": "index.js",
+  "scripts": {
+    "generate": "prisma generate",
+    "migrate:dev": "prisma migrate dev",
+    "migrate:deploy": "prisma migrate deploy",
+    "migrate:reset": "prisma migrate reset",
+    "studio": "prisma studio",
+    "seed": "ts-node prisma/seed.ts",
+    "push": "prisma db push"
+  },
+  "dependencies": {
+    "@prisma/client": "^5.8.0"
+  },
+  "devDependencies": {
+    "@types/bcrypt": "^6.0.0",
+    "bcrypt": "^6.0.0",
+    "prisma": "^5.8.0",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.3.3"
+  }
+}
