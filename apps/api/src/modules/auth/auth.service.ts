@@ -6,9 +6,11 @@ import {
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import * as bcrypt from 'bcrypt';
+import * as crypto from 'crypto';
 import { PrismaService } from '../../prisma/prisma.service';
 import { AuditService } from '../audit/audit.service';
 import { ModuleAccessService } from '../module-access/module-access.service';
+import { EmailService } from '../email/email.service';
 import { LoginDto } from './dto/login.dto';
 import { TokenResponseDto } from './dto/token-response.dto';
 import { ALL_MODULES } from '../../common/constants/modules';
@@ -21,6 +23,7 @@ export class AuthService {
     private configService: ConfigService,
     private auditService: AuditService,
     private moduleAccessService: ModuleAccessService,
+    private emailService: EmailService,
   ) {}
 
   async login(loginDto: LoginDto): Promise<TokenResponseDto> {
@@ -44,7 +47,7 @@ export class AuthService {
       throw new UnauthorizedException('Credenciales inválidas');
     }
 
-    const tokens = await this.generateTokens(user.id, user.email, user.role, user.organizationId);
+    const tokens = await this.generateTokens(user.id, user.email, user.role, user.organizationId, user.isPlatformAdmin);
 
     // Store refresh token hash in database (for invalidation)
     const refreshTokenHash = await bcrypt.hash(tokens.refreshToken, 10);
@@ -112,7 +115,7 @@ export class AuthService {
         throw new UnauthorizedException('Token de actualización inválido');
       }
 
-      const tokens = await this.generateTokens(user.id, user.email, user.role, user.organizationId);
+      const tokens = await this.generateTokens(user.id, user.email, user.role, user.organizationId, user.isPlatformAdmin);
 
       // Update refresh token hash
       const newRefreshTokenHash = await bcrypt.hash(tokens.refreshToken, 10);
@@ -197,6 +200,59 @@ export class AuthService {
     };
   }
 
+  async forgotPassword(email: string): Promise<{ message: string }> {
+    const user = await this.prisma.user.findFirst({
+      where: { email: email.toLowerCase(), isActive: true },
+    });
+
+    // Always return success (don't reveal if email exists)
+    if (!user) {
+      return { message: 'Si el correo existe, recibirá un enlace para restablecer su contraseña' };
+    }
+
+    const resetToken = crypto.randomBytes(32).toString('hex');
+    const resetTokenExpiry = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
+
+    await this.prisma.user.update({
+      where: { id: user.id },
+      data: { resetToken, resetTokenExpiry },
+    });
+
+    const appUrl = this.configService.get<string>('APP_URL', 'http://localhost:3000');
+    const resetUrl = `${appUrl}/reset-password?token=${resetToken}`;
+
+    await this.emailService.sendPasswordReset(user.email, resetUrl);
+
+    return { message: 'Si el correo existe, recibirá un enlace para restablecer su contraseña' };
+  }
+
+  async resetPassword(token: string, newPassword: string): Promise<{ message: string }> {
+    const user = await this.prisma.user.findFirst({
+      where: {
+        resetToken: token,
+        resetTokenExpiry: { gte: new Date() },
+      },
+    });
+
+    if (!user) {
+      throw new UnauthorizedException('Token inválido o expirado');
+    }
+
+    const passwordHash = await bcrypt.hash(newPassword, 10);
+
+    await this.prisma.user.update({
+      where: { id: user.id },
+      data: {
+        passwordHash,
+        resetToken: null,
+        resetTokenExpiry: null,
+        refreshTokenHash: null, // Invalidate all sessions
+      },
+    });
+
+    return { message: 'Contraseña actualizada exitosamente' };
+  }
+
   private getRefreshSecret(): string {
     const secret = this.configService.get<string>('JWT_REFRESH_SECRET');
     if (!secret) {
@@ -210,8 +266,12 @@ export class AuthService {
     email: string,
     role: string,
     organizationId: string,
+    isPlatformAdmin = false,
   ): Promise<{ accessToken: string; refreshToken: string }> {
-    const payload = { sub: userId, email, role, org: organizationId };
+    const payload: Record<string, any> = { sub: userId, email, role, org: organizationId };
+    if (isPlatformAdmin) {
+      payload.platformAdmin = true;
+    }
 
     const [accessToken, refreshToken] = await Promise.all([
       this.jwtService.signAsync(payload),

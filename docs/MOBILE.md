@@ -336,11 +336,16 @@ MediaPickerWidget(
 )
 ```
 
+### Authentication Updates
+
+- Login page includes a "Forgot password?" link that opens the web forgot-password URL in the device browser
+- JWT includes `organizationId` and `isPlatformAdmin` — stored in auth state
+
 ## Media Upload Service
 
 Located at: `lib/core/services/media_upload_service.dart`
 
-Handles uploading photos, signatures, and videos to the API's MinIO-backed storage.
+Handles uploading photos, signatures, and videos to the API's storage backend (S3 in production, MinIO in development).
 
 ```dart
 final mediaService = ref.read(mediaUploadServiceProvider);
@@ -368,7 +373,7 @@ API base URL is configured in `lib/core/config/app_config.dart`:
 ```dart
 class AppConfig {
   static const String _devHost = 'http://<your-lan-ip>:3001';
-  static const String _prodHost = 'https://api.plexo.com.do';
+  static const String _prodHost = 'https://api.plexoapp.com';
 
   // Set at build time: --dart-define=ENV=production
   static const String _env = String.fromEnvironment('ENV', defaultValue: 'development');
@@ -551,7 +556,7 @@ xcrun devicectl device install app --device <DEVICE_ID> \
 
 # Launch
 xcrun devicectl device process launch --device <DEVICE_ID> \
-  com.plexo.operations
+  com.plexo.ops
 ```
 
 Debug builds crash outside Xcode — use `--profile` or `--release` for standalone launch.
@@ -607,4 +612,4 @@ If camera still doesn't work, ensure the device has granted permission in system
 
 ---
 
-Plexo Operations Mobile v2.0
+Plexo Operations Mobile v2.0 — Multi-tenant SaaS

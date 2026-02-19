@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 import Image from 'next/image'
 
 export default function LoginPage() {
@@ -17,7 +18,8 @@ export default function LoginPage() {
     setError('')
 
     try {
-      const response = await fetch('/api/v1/auth/login', {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || ''
+      const response = await fetch(`${apiUrl}/api/v1/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),
@@ -118,6 +120,15 @@ export default function LoginPage() {
                 placeholder="••••••••"
               />
             </div>
+          </div>
+
+          <div className="flex items-center justify-end">
+            <Link
+              href="/forgot-password"
+              className="text-sm font-medium text-indigo-600 hover:text-indigo-500"
+            >
+              ¿Olvidó su contraseña?
+            </Link>
           </div>
 
           <div>

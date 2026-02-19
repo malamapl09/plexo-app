@@ -4,6 +4,25 @@ All notable changes to Plexo Operations.
 
 ## [Unreleased]
 
+### Added — SaaS Infrastructure
+- **Multi-tenancy** — `Organization` model, `organizationId` on 32 tables, `prisma.forTenant(orgId)` auto-filter via Prisma Client Extensions
+- **Platform Admin module** — `POST/GET/PATCH /platform/organizations`, `GET /platform/stats`; `PlatformAdminGuard` checks `isPlatformAdmin`; organization onboarding creates org + 5 roles + 75 module access rows + admin user + 9 point configs in a single transaction
+- **User Invitations** — `POST/GET/DELETE /invitations`, `POST /invitations/accept` (public); crypto token with 7-day expiry; invitation email via SES
+- **Password Reset** — `POST /auth/forgot-password`, `POST /auth/reset-password` (public); crypto token with 1-hour expiry; reset email via SES
+- **Email Service (Amazon SES)** — `EmailModule` with `sendWelcome()`, `sendPasswordReset()`, `sendInvitation()`; mock mode when SES not configured (logs `[MOCK]`); XSS-safe HTML templates with `escapeHtml()`
+- **S3 Storage** — replaced MinIO client with `@aws-sdk/client-s3`; dual-mode: `STORAGE_MODE=s3` for production (IAM role), `STORAGE_MODE=minio` for local dev (S3-compatible endpoint)
+- **Sentry Monitoring** — `@sentry/nestjs` initialized in `main.ts`, gated by `SENTRY_DSN` env var; Swagger docs disabled in production
+- **CI/CD** — `.github/workflows/deploy.yml` (build → GHCR → SSH deploy to EC2 with migration step), `.github/workflows/test.yml` (lint + build on PRs)
+- **Docker Compose split** — `docker-compose.dev.yml` (Postgres + Redis + MinIO + migrate + seed + API + Web), `docker-compose.prod.yml` (migrate + API + Web, connects to external RDS/ElastiCache/S3)
+- **Backup script** — `scripts/backup.sh` daily pg_dump to S3 with 30-day retention, `.pgpass` for secure auth
+- **Web platform admin pages** — `(platform)/organizations` list/create/detail, `(platform)/stats` dashboard
+- **Web auth pages** — `forgot-password`, `reset-password`, `accept-invite` pages
+- **Web invite user** — "Invitar Usuario" button on users page with role/store/department selector, pending invitations table
+- **Mobile forgot password** — "Forgot password?" link on login page opens web URL
+- **Prisma schema** — `Invitation` model, `resetToken`/`resetTokenExpiry` on User, `CAMPAIGN_SUBMITTED`/`PERFECT_DAY` gamification actions, `invitedBy` relation
+- **JWT** — `isPlatformAdmin` included in payload; `JWT_SECRET` throws on missing (no hardcoded fallback)
+- `.env.production.example` with RDS, ElastiCache, S3, SES, Sentry vars
+
 ### Added
 - **Training / LMS module** — full-stack course management with enrollment and quiz system
   - API: 20 endpoints under `/training` — CRUD courses/lessons/questions, bulk enroll by user or role, enrollment lifecycle (start → complete lessons → submit quiz → complete course), dashboard stats, per-store compliance

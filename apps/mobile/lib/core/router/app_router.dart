@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:plexo_ops/features/auth/presentation/pages/login_page.dart';
+import 'package:plexo_ops/features/auth/presentation/pages/forgot_password_page.dart';
 import 'package:plexo_ops/features/home/presentation/pages/home_page.dart';
 import 'package:plexo_ops/features/tasks/presentation/pages/tasks_page.dart';
 import 'package:plexo_ops/features/receiving/presentation/pages/receiving_page.dart';
@@ -37,8 +38,9 @@ final appRouterProvider = Provider<GoRouter>((ref) {
     redirect: (context, state) {
       final isLoggedIn = authState.isAuthenticated;
       final isLoggingIn = state.matchedLocation == '/login';
+      final isForgotPassword = state.matchedLocation == '/forgot-password';
 
-      if (!isLoggedIn && !isLoggingIn) {
+      if (!isLoggedIn && !isLoggingIn && !isForgotPassword) {
         return '/login';
       }
 
@@ -81,6 +83,11 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: '/login',
         name: 'login',
         builder: (context, state) => const LoginPage(),
+      ),
+      GoRoute(
+        path: '/forgot-password',
+        name: 'forgot-password',
+        builder: (context, state) => const ForgotPasswordPage(),
       ),
       ShellRoute(
         builder: (context, state, child) => HomePage(child: child),

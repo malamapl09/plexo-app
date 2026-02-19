@@ -276,9 +276,9 @@ async function main() {
 
   for (const config of pointConfigs) {
     await prisma.pointConfig.upsert({
-      where: { organizationId_actionType: { organizationId: org.id, actionType: config.actionType as any } },
+      where: { organizationId_actionType: { organizationId: org.id, actionType: config.actionType } },
       update: { points: config.points, description: config.description },
-      create: { ...config, actionType: config.actionType as any, organizationId: org.id },
+      create: { ...config, actionType: config.actionType, organizationId: org.id },
     });
   }
   console.log(`Seeded ${pointConfigs.length} gamification point configs`);
@@ -301,13 +301,31 @@ async function main() {
   }
   console.log(`Seeded ${badges.length} badges`);
 
+  // 13. Create platform admin user (cross-org, manages all organizations)
+  const platformAdminHash = await bcrypt.hash('admin123', 10);
+  const platformAdmin = await prisma.user.upsert({
+    where: { organizationId_email: { organizationId: org.id, email: 'platform@plexoapp.com' } },
+    update: { isPlatformAdmin: true, isSuperAdmin: true },
+    create: {
+      email: 'platform@plexoapp.com',
+      passwordHash: platformAdminHash,
+      name: 'Platform Admin',
+      role: 'OPERATIONS_MANAGER',
+      isSuperAdmin: true,
+      isPlatformAdmin: true,
+      organizationId: org.id,
+    },
+  });
+  console.log(`Platform admin: ${platformAdmin.email}`);
+
   console.log('');
   console.log('Sample login credentials (password: admin123):');
-  console.log('   - Operations Manager: admin@demo.plexoapp.com');
-  console.log('   - HQ Team: hq@demo.plexoapp.com');
+  console.log('   - Platform Admin:      platform@plexoapp.com');
+  console.log('   - Operations Manager:  admin@demo.plexoapp.com');
+  console.log('   - HQ Team:             hq@demo.plexoapp.com');
   console.log('   - Regional Supervisor: regional@demo.plexoapp.com');
-  console.log('   - Store Manager: manager@demo.plexoapp.com');
-  console.log('   - Dept Supervisor: supervisor@demo.plexoapp.com');
+  console.log('   - Store Manager:       manager@demo.plexoapp.com');
+  console.log('   - Dept Supervisor:     supervisor@demo.plexoapp.com');
   console.log('');
   console.log('Seed completed successfully!');
 }

@@ -1,0 +1,36 @@
+name: Test & Lint
+
+on:
+  pull_request:
+    branches: [main]
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Generate Prisma Client
+        run: npx prisma generate --schema=packages/database/prisma/schema.prisma
+
+      - name: Lint API
+        run: cd apps/api && npm run lint
+
+      - name: Build API
+        run: cd apps/api && npm run build
+
+      - name: Build Web
+        run: cd apps/web && npm run build
+        env:
+          NEXT_PUBLIC_API_URL: http://localhost:3001
+          NEXT_PUBLIC_APP_NAME: Plexo
+          NEXT_PUBLIC_APP_LOGO: /logo.png

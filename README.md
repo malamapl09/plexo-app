@@ -1,56 +1,103 @@
 # Plexo Operations
 
-Sistema de gestión de operaciones de tiendas para Plexo - República Dominicana.
+Multi-tenant SaaS platform for retail store operations management. Built with NestJS, Next.js, and Flutter.
 
-## Estructura del Proyecto
+**Business model:** Plexo sells directly to companies. Platform admins create client organizations, each with isolated data. Client admins invite their employees via email. No self-service signup.
+
+## Project Structure
 
 ```
-operations-app/
+plexo-app/
 ├── apps/
 │   ├── api/          # NestJS Backend API
-│   ├── mobile/       # Flutter Mobile App
+│   ├── mobile/       # Flutter Mobile App (iOS + Android)
 │   └── web/          # Next.js Web Dashboard
-└── packages/
-    └── database/     # Prisma Schema
+├── packages/
+│   └── database/     # Prisma Schema + Migrations
+├── scripts/          # Backup and deployment scripts
+└── .github/
+    └── workflows/    # CI/CD (GitHub Actions)
 ```
 
-## Módulos
+## Modules (15)
 
-1. **Plan del Día (Tareas)** - Gestión de tareas diarias HQ → Tiendas
-2. **Recepciones** - Documentación digital de entregas con escaneo de códigos, firma digital, fotos
-3. **Incidencias** - Sistema de tickets con auto-asignación y escalamiento
-4. **Verificaciones** - Verificación de tareas completadas
-5. **Checklists / SOPs** - Listas de verificación diarias/semanales con scoring
-6. **Auditorías** - Inspecciones de tienda con secciones, scoring ponderado, hallazgos
-7. **Acciones Correctivas (CAPA)** - Auto-creadas desde auditorías, checklists, e incidencias
-8. **Planogramas** - Merchandising visual: HQ publica referencia, tiendas envían fotos, HQ aprueba
-9. **Comunicaciones** - Anuncios HQ → Tiendas con confirmación de lectura
-10. **Gamificación** - Puntos, insignias, y clasificaciones por tienda/región
-11. **Permisos** - Control de acceso por módulo/rol configurable por super admin
+### Operations
+1. **Tasks** — Daily task assignments HQ → stores with photo evidence and verification
+2. **Receiving** — Delivery management with barcode scanning, discrepancy reporting, digital signatures
+3. **Issues** — Ticket system with auto-assignment, escalation, and categorization
+4. **Verification** — Supervisor verification queue for completed work
+
+### Quality & Compliance
+5. **Checklists / SOPs** — Recurring checklists (daily/weekly/monthly) with scoring
+6. **Audits** — Store inspections with sections, weighted scoring, findings
+7. **CAPA** — Auto-created corrective actions from audit findings, checklist failures (< 70%), high-priority issues
+8. **Planograms** — Visual merchandising: HQ publishes references, stores submit photos, HQ approves
+9. **Campaigns** — Promotional campaign execution with photo evidence and approval cycle
+
+### Team & Development
+10. **Training / LMS** — Courses with lessons, quizzes, enrollment tracking, certification
+11. **Gamification** — Points, badges, leaderboards (individual/store/department) with per-capita scoring
+12. **Communications** — HQ announcements with read receipts and acknowledgement tracking
+
+### Administration
+13. **Users** — User management with email invitations
+14. **Stores** — Store and region configuration with tiers
+15. **Module Permissions** — Granular role x module access control (configurable by super admin)
+
+### Platform (SaaS)
+- **Platform Admin** — Create/manage organizations, assign plans, view cross-org stats
+- **Invitations** — Email-based user onboarding with token-based acceptance
+- **Password Reset** — Forgot/reset password flow via email
 
 ## Tech Stack
 
-| Componente | Tecnología |
-|------------|------------|
+| Component | Technology |
+|-----------|------------|
 | Mobile | Flutter + Riverpod + Drift |
 | Web | Next.js 14 + TailwindCSS |
 | API | NestJS + TypeScript |
-| Database | PostgreSQL + Prisma |
+| Database | PostgreSQL 16 + Prisma |
 | Cache | Redis |
-| Storage | MinIO (S3-compatible) |
+| Storage | AWS S3 (prod) / MinIO (dev) |
+| Email | Amazon SES (mock mode for dev) |
 | Push | Firebase Cloud Messaging |
+| Monitoring | Sentry |
+| CI/CD | GitHub Actions → GHCR → EC2 |
 
-## Requisitos Previos
+## Multi-Tenancy
+
+- `Organization` model with slug, domain, branding, timezone, plan
+- `organizationId` on 32+ tenant-scoped models
+- `prisma.forTenant(orgId)` auto-injects organization filter on all queries
+- JWT payload includes `organizationId` — extracted via `@CurrentUser()` decorator
+- Auth service is intentionally NOT tenant-scoped (cross-org email lookup)
+
+## Prerequisites
 
 - Node.js 20+
 - Flutter 3.16+
 - PostgreSQL 16
 - Redis
-- MinIO
 
-## Inicio Rápido (macOS)
+## Quick Start (Local Development)
 
-### 1. Instalar Servicios con Homebrew
+### Option A: Docker Compose (recommended)
+
+```bash
+# Copy env file and set passwords
+cp .env.example .env
+# Edit .env — set POSTGRES_PASSWORD, REDIS_PASSWORD, MINIO_ROOT_PASSWORD, JWT_SECRET, JWT_REFRESH_SECRET
+
+# Start all services
+docker compose -f docker-compose.dev.yml up -d
+
+# Run seed (first time only)
+docker compose -f docker-compose.dev.yml --profile seed up seed
+```
+
+### Option B: Native (macOS)
+
+#### 1. Install Services
 
 ```bash
 # PostgreSQL 16
@@ -61,31 +108,30 @@ brew services start postgresql@16
 brew install redis
 brew services start redis
 
-# MinIO
+# MinIO (for file storage)
 brew install minio/stable/minio
 mkdir -p ~/minio-data
-MINIO_ROOT_USER=minioadmin MINIO_ROOT_PASSWORD=minioadmin minio server ~/minio-data --console-address :9001 &
+MINIO_ROOT_USER=plexo MINIO_ROOT_PASSWORD=plexo_minio_2024 minio server ~/minio-data --console-address :9001 &
 
-# MinIO Client (para crear buckets)
+# Create MinIO buckets
 brew install minio/stable/mc
-mc alias set local http://localhost:9000 minioadmin minioadmin
+mc alias set local http://localhost:9000 plexo plexo_minio_2024
 mc mb local/photos local/signatures local/documents --ignore-existing
 mc anonymous set download local/photos local/signatures local/documents
 ```
 
-### 2. Configurar Base de Datos
+#### 2. Configure Database
 
 ```bash
-# Crear usuario y base de datos
 /opt/homebrew/opt/postgresql@16/bin/createuser -s plexo
 /opt/homebrew/opt/postgresql@16/bin/psql -c "ALTER USER plexo WITH PASSWORD 'plexo_dev_2024';" postgres
-/opt/homebrew/opt/postgresql@16/bin/createdb -O plexo operations
+/opt/homebrew/opt/postgresql@16/bin/createdb -O plexo plexo
 ```
 
-### 3. Instalar Dependencias
+#### 3. Install Dependencies
 
 ```bash
-cd operations-app
+cd plexo-app
 
 # Backend
 cd apps/api && npm install
@@ -98,172 +144,181 @@ cd ../mobile && flutter pub get
 flutter pub run build_runner build --delete-conflicting-outputs
 ```
 
-### 4. Configurar API
+#### 4. Run Migrations & Seed
 
 ```bash
 cd apps/api
-
-# El archivo .env ya está configurado para desarrollo local
-# Verificar que tenga:
-# DATABASE_URL="postgresql://plexo:plexo_dev_2024@localhost:5432/operations?schema=public"
-# MINIO_ACCESS_KEY="minioadmin"
-# MINIO_SECRET_KEY="minioadmin"
-
-# Ejecutar migraciones
 npx prisma generate
 npx prisma migrate deploy
+
+# Seed demo data
+cd ../../packages/database
+npx tsx prisma/seed.ts
 ```
 
-### 5. Iniciar Aplicaciones
+#### 5. Start Applications
 
 ```bash
-# Terminal 1 - API
+# Terminal 1 — API
 cd apps/api && npm run start:dev
 
-# Terminal 2 - Web
+# Terminal 2 — Web
 cd apps/web && npm run dev
 
-# Terminal 3 - Mobile (iOS Simulator)
-cd apps/mobile
-open -a Simulator
-flutter run
+# Terminal 3 — Mobile (iOS Simulator)
+cd apps/mobile && open -a Simulator && flutter run
 ```
 
-### 6. Detener Servicios
+## Development URLs
 
-```bash
-brew services stop postgresql@16
-brew services stop redis
-pkill minio
-```
-
-## URLs de Desarrollo
-
-| Servicio | URL |
-|----------|-----|
+| Service | URL |
+|---------|-----|
 | API | http://localhost:3001 |
-| API Docs (Swagger) | http://localhost:3001/api/docs |
+| Swagger Docs | http://localhost:3001/api/docs |
 | Web Dashboard | http://localhost:3000 |
 | MinIO Console | http://localhost:9001 |
 
-## Credenciales de Prueba
+## Test Credentials (Seed Data)
 
-Password para todos: `admin123`
+Password for all: `demo1234`
 
-| Rol | Email | Tienda |
-|-----|-------|--------|
-| Operations Manager | admin@plexo.com.do | HQ (acceso total) |
-| HQ Team | operaciones@plexo.com.do | HQ |
-| Regional Supervisor | supervisor.sd@plexo.com.do | Santo Domingo |
-| Store Manager | gerente.duarte@plexo.com.do | PL01 - Plexo Duarte 78 |
-| Dept Supervisor | supervisor.electro@plexo.com.do | PL01 - Electrodomésticos |
+| Role | Email | Notes |
+|------|-------|-------|
+| Platform Admin | platform@plexoapp.com | Cross-org management |
+| Operations Manager | admin@demo.plexoapp.com | Demo org super admin |
+| Store Manager | gerente.duarte@demo.plexoapp.com | Demo store |
+| Dept Supervisor | supervisor.electro@demo.plexoapp.com | Demo department |
 
-## Estructura de la API
+## Onboarding Flow
 
-Ver documentación completa en [docs/API.md](docs/API.md)
+1. **Plexo platform admin** creates an Organization + first admin user via `/platform/organizations`
+2. Admin user receives welcome email with temporary password
+3. Admin logs in, invites employees via email
+4. Employees receive invitation email, set name + password, start using the app
+
+## API Overview
 
 ```
-# Autenticación
-POST   /api/v1/auth/login          # Iniciar sesión (retorna moduleAccess + isSuperAdmin)
-POST   /api/v1/auth/refresh        # Actualizar token
-GET    /api/v1/auth/profile        # Perfil del usuario actual
-POST   /api/v1/auth/logout         # Cerrar sesión
+# Authentication (public)
+POST   /api/v1/auth/login
+POST   /api/v1/auth/refresh
+POST   /api/v1/auth/forgot-password
+POST   /api/v1/auth/reset-password
+GET    /api/v1/auth/profile
 
-# Permisos de Módulos
-GET    /api/v1/module-access/my-modules   # Módulos accesibles del usuario
-GET    /api/v1/module-access/grid         # Grilla completa (super admin)
-PATCH  /api/v1/module-access/:role        # Actualizar permisos de un rol (super admin)
+# Platform Admin (isPlatformAdmin only)
+POST   /api/v1/platform/organizations
+GET    /api/v1/platform/organizations
+GET    /api/v1/platform/organizations/:id
+PATCH  /api/v1/platform/organizations/:id
+GET    /api/v1/platform/stats
 
-# Usuarios, Tiendas, Tareas, Recepciones, Incidencias
-# (ver docs/API.md para listado completo)
+# Invitations
+POST   /api/v1/invitations          # Send invite (auth)
+GET    /api/v1/invitations           # List pending (auth)
+DELETE /api/v1/invitations/:id       # Revoke (auth)
+POST   /api/v1/invitations/accept   # Accept invite (public)
 
-# Checklists
-GET    /api/v1/checklists              # Listar plantillas
-POST   /api/v1/checklists              # Crear plantilla
-POST   /api/v1/checklists/:id/submit   # Iniciar submission
-GET    /api/v1/checklists/dashboard     # Dashboard de cumplimiento
+# Module Access / Permissions
+GET    /api/v1/module-access/my-modules
+GET    /api/v1/module-access/grid
+PATCH  /api/v1/module-access/:role
 
-# Auditorías
-GET    /api/v1/store-audits            # Listar auditorías
-POST   /api/v1/store-audits/schedule   # Agendar auditoría
-POST   /api/v1/store-audits/:id/start  # Iniciar auditoría
-POST   /api/v1/store-audits/:id/complete # Completar auditoría
-
-# Acciones Correctivas (CAPA)
-GET    /api/v1/corrective-actions      # Listar acciones
-POST   /api/v1/corrective-actions      # Crear acción
-GET    /api/v1/corrective-actions/dashboard # Dashboard CAPA
-
-# Planogramas
-GET    /api/v1/planograms/templates    # Listar plantillas
-POST   /api/v1/planograms/templates/:id/submit  # Enviar fotos
-POST   /api/v1/planograms/submissions/:id/review # Aprobar/revisar
-
-# Gamificación
-GET    /api/v1/gamification/leaderboard    # Clasificación
-GET    /api/v1/gamification/badges         # Insignias
-GET    /api/v1/gamification/my-profile     # Mi perfil gamificación
+# Core Modules — see docs/API.md for full documentation
+# Users, Stores, Tasks, Receiving, Issues, Verification
+# Checklists, Audits, CAPA, Planograms, Campaigns
+# Training, Gamification, Communications
 ```
 
-## Desarrollo
+## Environment Variables
 
-### Backend (NestJS)
+### API (`apps/api/.env`)
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `DATABASE_URL` | PostgreSQL connection string | (required) |
+| `JWT_SECRET` | JWT signing secret | (required, no default) |
+| `JWT_REFRESH_SECRET` | Refresh token secret | (required, no default) |
+| `REDIS_HOST` | Redis host | `localhost` |
+| `REDIS_PORT` | Redis port | `6379` |
+| `STORAGE_MODE` | `minio` or `s3` | `minio` |
+| `MINIO_ENDPOINT` | MinIO host (dev) | `localhost` |
+| `MINIO_PORT` | MinIO port (dev) | `9000` |
+| `MINIO_ACCESS_KEY` | MinIO user (dev) | `plexo` |
+| `MINIO_SECRET_KEY` | MinIO password (dev) | (see .env) |
+| `AWS_S3_BUCKET` | S3 bucket (prod) | `plexo-uploads` |
+| `AWS_S3_REGION` | S3 region (prod) | `us-east-1` |
+| `AWS_SES_FROM_EMAIL` | SES sender email | (optional) |
+| `AWS_SES_REGION` | SES region | `us-east-1` |
+| `APP_URL` | Frontend URL (for email links) | `http://localhost:3000` |
+| `SENTRY_DSN` | Sentry error tracking | (optional) |
+| `CORS_ORIGINS` | Allowed origins (comma-separated) | `http://localhost:3000` |
+| `APP_NAME` | Application name | `Plexo` |
+
+### Web (`apps/web/.env.local`)
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `NEXT_PUBLIC_API_URL` | API base URL | `http://localhost:3001` |
+| `NEXT_PUBLIC_APP_NAME` | App display name | `Plexo` |
+| `NEXT_PUBLIC_APP_LOGO` | Logo path | `/logo.png` |
+
+## Production Deployment
+
+See `docker-compose.prod.yml` for the production setup. Infrastructure:
+
+| Component | Service |
+|-----------|---------|
+| App server | EC2 t4g.small (Docker Compose) |
+| Database | RDS PostgreSQL 16 |
+| Cache | ElastiCache Redis |
+| File storage | S3 |
+| Email | Amazon SES |
+| SSL | Let's Encrypt via Coolify |
+| CI/CD | GitHub Actions → GHCR → EC2 |
+| Monitoring | Sentry |
+| Backups | Daily pg_dump → S3 (30-day retention) |
+
+Deploy on push to `main`:
+```bash
+# Manual deploy
+docker compose -f docker-compose.prod.yml run --rm migrate
+docker compose -f docker-compose.prod.yml up -d
+```
+
+## Development Commands
 
 ```bash
+# API
 cd apps/api
-npm run start:dev    # Desarrollo con hot-reload
-npm run test         # Tests
+npm run start:dev    # Dev with hot-reload
 npm run lint         # Linting
-```
 
-### Web (Next.js)
-
-```bash
+# Web
 cd apps/web
-npm run dev          # Desarrollo
-npm run build        # Build producción
-npm run lint         # Linting
-```
+npm run dev          # Dev server
+npm run build        # Production build
 
-### Mobile (Flutter)
-
-```bash
+# Mobile
 cd apps/mobile
-flutter run          # Desarrollo
-flutter build apk    # Build Android
-flutter build ios    # Build iOS
+flutter run          # Dev
+flutter build apk    # Android
+flutter build ios    # iOS
+
+# Database
+cd packages/database
+npx prisma studio    # GUI explorer
+npx prisma migrate dev --name description  # New migration
+npx prisma generate  # Regenerate client
 ```
 
-### Base de Datos
+## Documentation
 
-```bash
-cd apps/api
-npx prisma studio    # GUI para explorar datos
-npx prisma migrate dev --name descripcion  # Nueva migración
-npx prisma generate  # Regenerar cliente
-```
-
-## Variables de Entorno
-
-| Variable | Descripción | Valor por Defecto |
-|----------|-------------|-------------------|
-| `DATABASE_URL` | URL de conexión PostgreSQL | `postgresql://plexo:plexo_dev_2024@localhost:5432/operations` |
-| `REDIS_HOST` | Host de Redis | `localhost` |
-| `REDIS_PORT` | Puerto de Redis | `6379` |
-| `MINIO_ENDPOINT` | Endpoint de MinIO | `localhost` |
-| `MINIO_PORT` | Puerto de MinIO | `9000` |
-| `MINIO_ACCESS_KEY` | Usuario MinIO | `minioadmin` |
-| `MINIO_SECRET_KEY` | Password MinIO | `minioadmin` |
-| `JWT_SECRET` | Secreto para tokens JWT | (ver .env) |
-| `JWT_REFRESH_SECRET` | Secreto para refresh tokens | (ver .env) |
-
-## Documentación
-
-- [API Documentation](docs/API.md) - Endpoints, request/response formats, status flows
-- [Web Dashboard](docs/WEB.md) - Next.js admin app, pages, navigation
-- [Mobile App](docs/MOBILE.md) - Flutter app, features, offline support
-- [CI/CD Setup](docs/GITLAB_CI_SETUP.md) - GitLab CI/CD (outdated — Docker removed)
+- [API Documentation](docs/API.md) — Endpoints, request/response formats, status flows
+- [Web Dashboard](docs/WEB.md) — Next.js admin app, pages, navigation
+- [Mobile App](docs/MOBILE.md) — Flutter app, features, offline support
+- [Board Summary](docs/BOARD-SUMMARY.md) — Executive summary for stakeholders
 
 ---
 
-Plexo © 2025
+Plexo Operations Platform &copy; 2026

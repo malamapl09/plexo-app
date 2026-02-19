@@ -1,12 +1,18 @@
 # Plexo Operations - API Documentation
 
+Multi-tenant SaaS API. Each request is scoped to the user's organization via JWT.
+
 Base URL: `http://localhost:3001/api/v1`
 
-Swagger UI: `http://localhost:3001/api/docs`
+Swagger UI: `http://localhost:3001/api/docs` (disabled in production)
+
+## Multi-Tenancy
+
+All tenant-scoped endpoints automatically filter by the user's `organizationId` from the JWT. No manual org filtering is needed. The `prisma.forTenant(orgId)` extension handles this transparently.
 
 ## Authentication
 
-All endpoints (except login) require a Bearer token in the Authorization header:
+All endpoints (except login, forgot-password, reset-password, and accept-invite) require a Bearer token:
 ```
 Authorization: Bearer <access_token>
 ```
@@ -17,8 +23,8 @@ Login with email and password.
 **Request Body:**
 ```json
 {
-  "email": "admin@plexo.com.do",
-  "password": "admin123"
+  "email": "admin@demo.plexoapp.com",
+  "password": "demo1234"
 }
 ```
 
@@ -29,15 +35,17 @@ Login with email and password.
   "refreshToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
   "user": {
     "id": "uuid",
-    "email": "admin@plexo.com.do",
+    "email": "admin@demo.plexoapp.com",
     "name": "Admin",
     "role": "OPERATIONS_MANAGER",
     "isSuperAdmin": true,
+    "isPlatformAdmin": false,
+    "organizationId": "uuid",
     "storeId": null,
     "storeName": null,
     "departmentId": null,
     "departmentName": null,
-    "moduleAccess": ["tasks", "receiving", "issues", "verification", "checklists", "audits", "corrective_actions", "planograms", "communications", "gamification", "training", "reports", "stores", "users"]
+    "moduleAccess": ["tasks", "receiving", "issues", "verification", "checklists", "audits", "corrective_actions", "planograms", "campaigns", "communications", "gamification", "training", "reports", "stores", "users"]
   }
 }
 ```
@@ -52,6 +60,34 @@ Refresh access token using refresh token. Returns same response shape as login.
 }
 ```
 
+### POST /auth/forgot-password
+Request a password reset email. **Public endpoint (no auth required).**
+
+**Request Body:**
+```json
+{
+  "email": "user@example.com"
+}
+```
+
+**Response:** Always returns 200 (to prevent email enumeration).
+```json
+{
+  "message": "If the email exists, a reset link has been sent"
+}
+```
+
+### POST /auth/reset-password
+Reset password using token from email. **Public endpoint (no auth required).**
+
+**Request Body:**
+```json
+{
+  "token": "hex-token-from-email-link",
+  "newPassword": "NewPassword123"
+}
+```
+
 ### GET /auth/profile
 Get current user's profile. Requires Bearer token.
 
@@ -59,15 +95,143 @@ Get current user's profile. Requires Bearer token.
 ```json
 {
   "id": "uuid",
-  "email": "admin@plexo.com.do",
+  "email": "admin@demo.plexoapp.com",
   "name": "Admin",
   "role": "OPERATIONS_MANAGER",
   "isSuperAdmin": true,
+  "isPlatformAdmin": false,
+  "organizationId": "uuid",
   "storeId": null,
   "storeName": null,
   "departmentId": null,
   "departmentName": null,
-  "moduleAccess": ["tasks", "receiving", "issues", "verification", "checklists", "audits", "corrective_actions", "planograms", "communications", "gamification", "training", "reports", "stores", "users"]
+  "moduleAccess": ["tasks", "receiving", "issues", "verification", "checklists", "audits", "corrective_actions", "planograms", "campaigns", "communications", "gamification", "training", "reports", "stores", "users"]
+}
+```
+
+---
+
+## Platform Admin
+
+Platform-level endpoints for managing organizations across the SaaS. **Requires `isPlatformAdmin: true`.**
+
+### POST /platform/organizations
+Create a new organization with an admin user. Atomically creates: org + 5 default roles + 75 module access rows + admin user + 9 point configs.
+
+**Request Body:**
+```json
+{
+  "name": "Acme Corp",
+  "slug": "acme-corp",
+  "domain": "acme.com",
+  "primaryColor": "#4F46E5",
+  "timezone": "America/New_York",
+  "locale": "en",
+  "plan": "pro",
+  "adminEmail": "admin@acme.com",
+  "adminName": "John Admin"
+}
+```
+
+**Response:**
+```json
+{
+  "id": "uuid",
+  "name": "Acme Corp",
+  "slug": "acme-corp",
+  "domain": "acme.com",
+  "plan": "pro",
+  "isActive": true,
+  "createdAt": "2026-02-19T...",
+  "adminUser": {
+    "id": "uuid",
+    "email": "admin@acme.com",
+    "name": "John Admin"
+  }
+}
+```
+
+A welcome email with a temporary password is sent to the admin email.
+
+### GET /platform/organizations
+List all organizations with user/store counts.
+
+### GET /platform/organizations/:id
+Get organization detail with counts (users, stores, roles, tasks, issues, audits, courses).
+
+### PATCH /platform/organizations/:id
+Update organization settings (name, domain, branding, plan, isActive, settings).
+
+**Request Body:**
+```json
+{
+  "plan": "enterprise",
+  "isActive": true,
+  "primaryColor": "#059669"
+}
+```
+
+### GET /platform/stats
+Cross-organization statistics.
+
+**Response:**
+```json
+{
+  "totalOrgs": 5,
+  "activeOrgs": 4,
+  "totalUsers": 150
+}
+```
+
+---
+
+## Invitations
+
+Email-based user onboarding. Organization admins send invitations; recipients create accounts.
+
+### POST /invitations
+Send an invitation email. **Requires auth.** Creates a token valid for 7 days.
+
+**Request Body:**
+```json
+{
+  "email": "newuser@example.com",
+  "role": "STORE_MANAGER",
+  "storeId": "uuid",
+  "departmentId": "uuid"
+}
+```
+
+**Response:** Invitation record (token is NOT included in the response).
+
+### GET /invitations
+List pending (non-expired, non-accepted) invitations for the current org.
+
+### DELETE /invitations/:id
+Revoke a pending invitation.
+
+### POST /invitations/accept
+Accept an invitation and create an account. **Public endpoint (no auth required).**
+
+**Request Body:**
+```json
+{
+  "token": "hex-token-from-email-link",
+  "name": "Jane Doe",
+  "password": "SecurePassword123"
+}
+```
+
+**Response:**
+```json
+{
+  "message": "Cuenta creada exitosamente. Ya puedes iniciar sesion.",
+  "user": {
+    "id": "uuid",
+    "email": "newuser@example.com",
+    "name": "Jane Doe",
+    "role": "STORE_MANAGER"
+  }
 }
 ```
 
@@ -466,7 +630,7 @@ Terminal States: COMPLETED, WITH_ISSUE, DID_NOT_ARRIVE
 
 ## File Uploads
 
-File uploads are handled via MinIO (S3-compatible storage). All upload endpoints accept `multipart/form-data` with a `file` field.
+File uploads are handled via AWS S3 (production) or MinIO (development, S3-compatible). The `STORAGE_MODE` env var controls which backend is used. All upload endpoints accept `multipart/form-data` with a `file` field.
 
 ### POST /uploads/photo
 Upload a photo (receiving evidence, discrepancy photos, issue photos).
@@ -510,16 +674,17 @@ Upload a video file.
 }
 ```
 
-### MinIO Configuration
-
-The API uses two MinIO-related endpoint settings:
+### Storage Configuration
 
 | Env Variable | Purpose | Example |
 |---|---|---|
-| `MINIO_ENDPOINT` | Connection endpoint (API → MinIO) | `localhost` |
-| `MINIO_PUBLIC_ENDPOINT` | URL in returned file URLs (must be reachable by clients) | `192.168.1.100` |
+| `STORAGE_MODE` | `s3` (production) or `minio` (development) | `minio` |
+| `MINIO_ENDPOINT` | MinIO host (dev only) | `localhost` |
+| `MINIO_PORT` | MinIO port (dev only) | `9000` |
+| `AWS_S3_BUCKET` | S3 bucket name (prod only) | `plexo-uploads` |
+| `AWS_S3_REGION` | S3 region (prod only) | `us-east-1` |
 
-Buckets (`photos`, `signatures`) are auto-created on API startup with public-read access policies.
+In MinIO mode, buckets (`photos`, `signatures`) are auto-created on API startup. In S3 mode, the bucket must exist and the EC2 instance needs an IAM role with S3 access.
 
 ---
 
@@ -1510,32 +1675,28 @@ Approve or request revision.
 
 ## Demo Data
 
-Run the seed scripts to populate the database with realistic demo data:
+Run the seed script to populate the database with a demo organization and realistic data:
 
 ```bash
 cd packages/database
-
-# Base seed (stores, departments, roles, module access)
-DATABASE_URL="postgresql://..." npm run seed
-
-# Demo seed (users, tasks, issues, campaigns, training, etc.)
-DATABASE_URL="postgresql://..." npm run seed:demo
+npx tsx prisma/seed.ts
 ```
+
+Or via Docker Compose:
+```bash
+docker compose -f docker-compose.dev.yml --profile seed up seed
+```
+
+The seed creates a demo organization with users, stores, tasks, issues, campaigns, training, etc.
 
 ### Demo Users
 
-| Email | Password | Role | Store |
+| Email | Password | Role | Notes |
 |-------|----------|------|-------|
-| `admin@plexo.com.do` | `admin123` | OPERATIONS_MANAGER (Super Admin) | HQ |
-| `gerente.duarte@plexo.com.do` | `admin123` | STORE_MANAGER | PL01 Duarte 78 |
-| `gerente.herrera@plexo.com.do` | `admin123` | STORE_MANAGER | PL03 Herrera |
-| `gerente.santiago@plexo.com.do` | `admin123` | STORE_MANAGER | PL16 Santiago |
-| `gerente.27feb@plexo.com.do` | `admin123` | STORE_MANAGER | PL08 27 Febrero |
-| `gerente.oriental@plexo.com.do` | `admin123` | STORE_MANAGER | PL10 Oriental |
-| `supervisor.muebles@plexo.com.do` | `admin123` | DEPT_SUPERVISOR | PL01 Muebles |
-| `supervisor.super@plexo.com.do` | `admin123` | DEPT_SUPERVISOR | PL03 Super |
-| `supervisor.super.duarte@plexo.com.do` | `admin123` | DEPT_SUPERVISOR | PL01 Super |
-| `supervisor.santiago@plexo.com.do` | `admin123` | REGIONAL_SUPERVISOR | PL16 Santiago |
+| `platform@plexoapp.com` | `demo1234` | Platform Admin | Cross-org management |
+| `admin@demo.plexoapp.com` | `demo1234` | OPERATIONS_MANAGER (Super Admin) | Demo org HQ |
+| `gerente.duarte@demo.plexoapp.com` | `demo1234` | STORE_MANAGER | Demo store |
+| `supervisor.electro@demo.plexoapp.com` | `demo1234` | DEPT_SUPERVISOR | Demo department |
 
 ### Demo Data Counts
 
@@ -1577,4 +1738,4 @@ All errors return a consistent format:
 
 ---
 
-Plexo Operations API v1.8
+Plexo Operations API v2.0 — Multi-tenant SaaS

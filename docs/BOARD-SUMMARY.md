@@ -1,25 +1,36 @@
 # Plexo Operations Platform
-## Resumen Ejecutivo para Junta Directiva — Febrero 2026
+## Resumen Ejecutivo — Febrero 2026
 
 ---
 
 ## Que es?
 
-Plataforma digital propia para gestionar las operaciones diarias de todas las tiendas Plexo. Reemplaza procesos manuales (papel, WhatsApp, Excel) con un sistema integrado accesible desde web (gerencia/HQ) y movil (tiendas).
+Plataforma SaaS multi-tenant para gestion de operaciones en cadenas de tiendas retail. Cada empresa cliente opera en su propio espacio aislado con datos, roles y configuracion independientes. Accesible desde web (gerencia/HQ) y movil (tiendas). Reemplaza procesos manuales (papel, WhatsApp, Excel).
 
 ---
+
+## Modelo de Negocio
+
+Plexo vende directamente a empresas (B2B). No existe registro publico — los administradores de Plexo crean cada organizacion cliente y entregan acceso al primer usuario administrador. Cada cliente puede tener su propio branding (logo, color, nombre).
+
+**Flujo de onboarding:**
+1. Admin de Plexo crea organizacion + primer usuario admin
+2. Admin del cliente recibe email con credenciales temporales
+3. Admin del cliente invita empleados por email
+4. Empleados aceptan invitacion, establecen password, comienzan a usar la app
 
 ## Plataforma en Numeros
 
 | Metrica | Valor |
 |---------|-------|
 | Modulos funcionales | 15 |
-| Endpoints de API | 192 |
-| Paginas web (dashboard) | 38 |
+| Endpoints de API | 200+ |
+| Paginas web (dashboard) | 42+ |
 | Modulos moviles | 15 |
-| Tablas de base de datos | 46 |
-| Lineas de codigo | 95,000+ |
+| Tablas de base de datos | 48 |
+| Lineas de codigo | 100,000+ |
 | Apps | 3 (API backend, Web dashboard, App movil iOS/Android) |
+| Arquitectura | Multi-tenant SaaS |
 
 ---
 
@@ -114,26 +125,34 @@ Plataforma digital propia para gestionar las operaciones diarias de todas las ti
 
 Ademas: costos de implementacion ($10,000-$50,000 una vez), sin personalizacion a procesos de Plexo, dependencia del proveedor, datos en servidores externos.
 
-### Costo de nuestra plataforma (propia)
+### Costo de nuestra plataforma (AWS)
 
-| Concepto | Costo |
-|----------|-------|
-| Servidor local (ya existente) | $0/mes |
-| Apple Developer Program | $99/ano |
-| Google Play Developer | $25 (una vez) |
-| Firebase (notificaciones push) | Gratis (tier gratuito) |
-| Dominio + SSL | ~$50/ano |
-| **Total operativo** | **~$175/ano** |
+| Concepto | Costo Mensual |
+|----------|---------------|
+| EC2 t4g.small (2 vCPU, 2GB) | $12.26 |
+| RDS db.t4g.micro PostgreSQL 16 | $13.98 (GRATIS ano 1) |
+| EBS gp3 20GB | $1.60 |
+| IPv4 publica | $3.65 |
+| S3 (almacenamiento de archivos) | ~$1.00 |
+| Amazon SES (email) | $0.00 |
+| SSL (Let's Encrypt) | $0.00 |
+| Firebase FCM (push) | $0.00 |
+| Sentry (monitoreo errores) | $0.00 (tier gratis) |
+| Apple Developer Program | $8.25/mes ($99/ano) |
+| Google Play Developer | ~$2.08/mes ($25 una vez) |
+| **Total (ano 1)** | **~$27/mes** |
+| **Total (despues de ano 1)** | **~$41/mes** |
 
 **Ahorro anual estimado vs SaaS: $24,000 - $180,000**
 
-### Ventajas adicionales de plataforma propia
+### Ventajas de plataforma propia
 
-- **Sin cobro por usuario** — no importa si son 50 o 5,000 empleados
-- **Datos en nuestros servidores** — control total, cumplimiento local
-- **Personalizable** — adaptamos a procesos exactos de Plexo
-- **Sin dependencia de proveedor** — no hay riesgo de aumento de precios o cierre del servicio
-- **Integracion futura** — se puede conectar con sistemas internos (SAP, nomina, inventario)
+- **Sin cobro por usuario ni por organizacion** — costo fijo sin importar cuantos clientes o empleados
+- **Multi-tenant** — una sola instancia sirve a multiples empresas clientes
+- **Datos propios** — control total sobre datos de clientes
+- **Personalizable** — cada organizacion puede tener branding, timezone, y configuracion propia
+- **Escalable** — upgrade EC2/RDS cuando crezca la demanda
+- **Integracion futura** — se puede conectar con sistemas internos de cada cliente
 
 ---
 
@@ -189,7 +208,7 @@ Los siguientes datos provienen de estudios de la industria y casos documentados 
 | Tasa de cumplimiento | 85% → 95% | 85% → 100% |
 | Completado de capacitacion | 40% → 80% | 40% → 95% |
 | Engagement del equipo | +30% | +60% |
-| Costo de la plataforma | ~$175/ano | ~$175/ano |
+| Costo de la plataforma | ~$500/ano | ~$500/ano |
 
 > *"Las empresas con estrategias digitales sofisticadas ven un ROI promedio de 17-20% en sus inversiones digitales y 3.3x mayor crecimiento de ingresos vs empresas sin digitalizacion."* — Forrester Research
 
@@ -197,10 +216,11 @@ Los siguientes datos provienen de estudios de la industria y casos documentados 
 
 ## Proximos Pasos (Roadmap)
 
-### Fase Actual: Publicacion
+### Fase Actual: Lanzamiento SaaS
+- Desplegar en AWS (EC2 + RDS + S3 + SES)
+- Verificar dominio en SES, configurar DNS
 - Publicar app en App Store y Google Play
-- Desplegar servidor en infraestructura local
-- Piloto en 1-2 tiendas
+- Onboarding de primeros clientes piloto
 
 ### Siguientes Modulos (en orden de prioridad)
 
@@ -215,4 +235,4 @@ Los siguientes datos provienen de estudios de la industria y casos documentados 
 
 ---
 
-*Plexo Operations Platform v2.0 — Febrero 2026*
+*Plexo Operations Platform v2.0 SaaS — Febrero 2026*

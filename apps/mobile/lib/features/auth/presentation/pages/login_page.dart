@@ -145,7 +145,28 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                   },
                 ),
 
-                const SizedBox(height: 24),
+                const SizedBox(height: 8),
+
+                // Forgot password link
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: TextButton(
+                    onPressed: () => context.push('/forgot-password'),
+                    style: TextButton.styleFrom(
+                      padding: EdgeInsets.zero,
+                      minimumSize: const Size(0, 36),
+                    ),
+                    child: Text(
+                      '¿Olvidó su contraseña?',
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: colorScheme.primary,
+                      ),
+                    ),
+                  ),
+                ),
+
+                const SizedBox(height: 16),
 
                 // Error message
                 if (authState.error != null) ...[

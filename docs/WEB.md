@@ -1,6 +1,6 @@
 # Plexo Operations - Web Dashboard Documentation
 
-Next.js 14 admin dashboard for HQ and regional management.
+Next.js 14 admin dashboard for HQ, regional management, and platform administration.
 
 ## Requirements
 
@@ -22,6 +22,8 @@ Create `.env.local` or set in environment:
 | Variable | Description | Default |
 |----------|-------------|---------|
 | `NEXT_PUBLIC_API_URL` | API base URL | `http://localhost:3001` |
+| `NEXT_PUBLIC_APP_NAME` | App display name | `Plexo` |
+| `NEXT_PUBLIC_APP_LOGO` | Logo path | `/logo.png` |
 
 ## Tech Stack
 
@@ -43,7 +45,17 @@ Create `.env.local` or set in environment:
 apps/web/src/
 ├── app/
 │   ├── (auth)/
-│   │   └── login/page.tsx              # Login page
+│   │   ├── login/page.tsx              # Login page
+│   │   ├── forgot-password/page.tsx    # Forgot password
+│   │   ├── reset-password/page.tsx     # Reset password (token from email)
+│   │   └── accept-invite/page.tsx      # Accept invitation (set name + password)
+│   ├── (platform)/
+│   │   ├── layout.tsx                  # Platform admin layout + guard
+│   │   ├── page.tsx                    # Platform dashboard (stats)
+│   │   └── organizations/
+│   │       ├── page.tsx                # Organization list
+│   │       ├── new/page.tsx            # Create organization
+│   │       └── [id]/page.tsx           # Organization detail + edit
 │   ├── (dashboard)/
 │   │   ├── layout.tsx                  # Sidebar + route protection
 │   │   ├── tasks/                      # Task management
@@ -99,7 +111,7 @@ apps/web/src/
 Auth state is stored in `localStorage`:
 - `accessToken` — JWT Bearer token
 - `refreshToken` — for token refresh
-- `user` — JSON with `id`, `email`, `name`, `role`, `isSuperAdmin`, `moduleAccess[]`, `storeId`, `storeName`
+- `user` — JSON with `id`, `email`, `name`, `role`, `isSuperAdmin`, `isPlatformAdmin`, `organizationId`, `moduleAccess[]`, `storeId`, `storeName`
 
 The dashboard layout checks for `accessToken` on mount and redirects to `/login` if missing.
 
@@ -141,6 +153,14 @@ Events are broadcast to rooms: `store:{storeId}`, `hq`, `user:{userId}`.
 
 | Route | Module | Description |
 |-------|--------|-------------|
+| `/login` | auth | Login page |
+| `/forgot-password` | auth | Request password reset email |
+| `/reset-password` | auth | Set new password (from email link) |
+| `/accept-invite` | auth | Accept invitation, create account |
+| `/platform` | platform | Platform admin dashboard (stats) |
+| `/platform/organizations` | platform | Organization list (platform admin only) |
+| `/platform/organizations/new` | platform | Create new organization |
+| `/platform/organizations/[id]` | platform | Organization detail + edit |
 | `/tasks` | tasks | Daily task assignments |
 | `/tasks/templates` | tasks | Task template management |
 | `/checklists` | checklists | Checklist templates |
@@ -195,4 +215,4 @@ Pattern for skeleton table rows:
 )}
 ```
 
-Plexo Operations Web v1.8
+Plexo Operations Web v2.0 — Multi-tenant SaaS

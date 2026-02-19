@@ -261,8 +261,10 @@ enum GamificationActionType {
   CAPA_VERIFIED
   PLANOGRAM_APPROVED
   CAMPAIGN_EXECUTED
+  CAMPAIGN_SUBMITTED
   ON_TIME_COMPLETION
   PERFECT_AUDIT_SCORE
+  PERFECT_DAY
   TRAINING_COMPLETED
   PERFECT_TRAINING_SCORE
 }
@@ -347,6 +349,7 @@ model Organization {
   pointConfigs       PointConfig[]
   badges             Badge[]
   roleModuleAccess   RoleModuleAccess[]
+  invitations        Invitation[]
   taskAssignments    TaskAssignment[]
   receivings         Receiving[]
   issues             Issue[]
@@ -461,6 +464,8 @@ model User {
   isSuperAdmin     Boolean         @default(false)
   isPlatformAdmin  Boolean         @default(false)
   refreshTokenHash String?
+  resetToken       String?   @unique
+  resetTokenExpiry DateTime?
   issueCategories  IssueCategory[] // Categories this user can handle for issue assignment
   organizationId   String
   organization     Organization    @relation(fields: [organizationId], references: [id])
@@ -519,6 +524,9 @@ model User {
   createdTrainingCourses TrainingCourse[]     @relation("TrainingCourseCreator")
   trainingEnrollments    TrainingEnrollment[] @relation("TrainingEnrolled")
   trainingAssignments    TrainingEnrollment[] @relation("TrainingAssigner")
+
+  // Invitation relations
+  sentInvitations Invitation[] @relation("InvitedByUser")
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -1625,4 +1633,30 @@ model RoleModuleAccess {
   @@index([role])
   @@index([organizationId])
   @@map("role_module_access")
+}
+
+// ============================================
+// INVITATIONS
+// ============================================
+
+model Invitation {
+  id             String    @id @default(uuid())
+  email          String
+  role           String
+  storeId        String?
+  departmentId   String?
+  token          String    @unique
+  expiresAt      DateTime
+  acceptedAt     DateTime?
+  invitedById    String
+  invitedBy      User         @relation("InvitedByUser", fields: [invitedById], references: [id])
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([email])
+  @@index([organizationId])
+  @@map("invitations")
 }

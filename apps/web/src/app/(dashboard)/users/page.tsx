@@ -16,6 +16,16 @@ interface User {
   issueCategories: string[]
 }
 
+interface Invitation {
+  id: string
+  email: string
+  role: string
+  storeId: string | null
+  departmentId: string | null
+  expiresAt: string
+  createdAt: string
+}
+
 const issueCategoryLabels: Record<string, string> = {
   MAINTENANCE: 'Mantenimiento',
   CLEANING: 'Limpieza',
@@ -107,6 +117,23 @@ export default function UsersPage() {
     issueCategories: [] as string[],
   })
 
+  // Invite modal state
+  const [isInviteModalOpen, setIsInviteModalOpen] = useState(false)
+  const [isInviting, setIsInviting] = useState(false)
+  const [inviteForm, setInviteForm] = useState({
+    email: '',
+    role: '',
+    storeId: '',
+    departmentId: '',
+  })
+  const [inviteSuccess, setInviteSuccess] = useState<string | null>(null)
+  const [inviteError, setInviteError] = useState<string | null>(null)
+
+  // Pending invitations state
+  const [invitations, setInvitations] = useState<Invitation[]>([])
+  const [isLoadingInvitations, setIsLoadingInvitations] = useState(false)
+  const [isRevokingId, setIsRevokingId] = useState<string | null>(null)
+
   // Derived maps from roles
   const roleLabels: Record<string, string> = {}
   const roleColors: Record<string, string> = {}
@@ -119,6 +146,7 @@ export default function UsersPage() {
     loadUsers()
     loadStoresAndDepartments()
     loadRoles()
+    loadInvitations()
   }, [])
 
   const loadUsers = async () => {
@@ -194,6 +222,106 @@ export default function UsersPage() {
       }
     } catch (err) {
       console.error('Error loading roles:', err)
+    }
+  }
+
+  const loadInvitations = async () => {
+    setIsLoadingInvitations(true)
+    try {
+      const token = localStorage.getItem('accessToken')
+      const baseUrl = process.env.NEXT_PUBLIC_API_URL || ''
+      const res = await fetch(`${baseUrl}/api/v1/invitations`, {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      if (res.ok) {
+        const data = await res.json()
+        setInvitations(Array.isArray(data) ? data : [])
+      }
+    } catch (err) {
+      console.error('Error loading invitations:', err)
+    } finally {
+      setIsLoadingInvitations(false)
+    }
+  }
+
+  const handleInviteClose = () => {
+    setIsInviteModalOpen(false)
+    setInviteForm({ email: '', role: roles[0]?.key || '', storeId: '', departmentId: '' })
+    setInviteSuccess(null)
+    setInviteError(null)
+  }
+
+  const handleSendInvite = async () => {
+    setInviteError(null)
+    setInviteSuccess(null)
+
+    if (!inviteForm.email) {
+      setInviteError('El correo es requerido')
+      return
+    }
+    if (!inviteForm.role) {
+      setInviteError('El rol es requerido')
+      return
+    }
+
+    setIsInviting(true)
+    try {
+      const token = localStorage.getItem('accessToken')
+      const baseUrl = process.env.NEXT_PUBLIC_API_URL || ''
+
+      const response = await fetch(`${baseUrl}/api/v1/invitations`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          email: inviteForm.email,
+          role: inviteForm.role,
+          storeId: inviteForm.storeId || null,
+          departmentId: inviteForm.departmentId || null,
+        }),
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Error enviando invitacion')
+      }
+
+      setInviteSuccess(`Invitacion enviada a ${inviteForm.email}`)
+      await loadInvitations()
+      setInviteForm({ email: '', role: roles[0]?.key || '', storeId: '', departmentId: '' })
+    } catch (err) {
+      setInviteError(err instanceof Error ? err.message : 'Error al enviar invitacion')
+    } finally {
+      setIsInviting(false)
+    }
+  }
+
+  const handleRevokeInvitation = async (invitationId: string) => {
+    if (!confirm('Revocar esta invitacion?')) return
+
+    setIsRevokingId(invitationId)
+    try {
+      const token = localStorage.getItem('accessToken')
+      const baseUrl = process.env.NEXT_PUBLIC_API_URL || ''
+
+      const response = await fetch(`${baseUrl}/api/v1/invitations/${invitationId}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` },
+      })
+
+      if (!response.ok) {
+        throw new Error('Error revocando invitacion')
+      }
+
+      await loadInvitations()
+    } catch (err) {
+      console.error('Error revoking invitation:', err)
+      alert('Error al revocar invitacion')
+    } finally {
+      setIsRevokingId(null)
     }
   }
 
@@ -375,11 +503,23 @@ export default function UsersPage() {
             Gestión de usuarios y roles del sistema
           </p>
         </div>
-        <div className="mt-4 flex md:mt-0 md:ml-4">
+        <div className="mt-4 flex gap-2 md:mt-0 md:ml-4">
+          <button
+            type="button"
+            onClick={() => {
+              setInviteForm({ email: '', role: roles[0]?.key || '', storeId: '', departmentId: '' })
+              setInviteSuccess(null)
+              setInviteError(null)
+              setIsInviteModalOpen(true)
+            }}
+            className="inline-flex items-center px-4 py-2 border border-blue-600 rounded-md shadow-sm text-sm font-medium text-blue-600 bg-white hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+          >
+            Invitar Usuario
+          </button>
           <button
             type="button"
             onClick={() => setIsCreateModalOpen(true)}
-            className="ml-3 inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+            className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
           >
             + Nuevo Usuario
           </button>
@@ -600,6 +740,75 @@ export default function UsersPage() {
         </div>
       )}
 
+      {/* Pending Invitations Section */}
+      <div className="mt-8">
+        <h2 className="text-lg font-semibold text-gray-900 mb-4">Invitaciones pendientes</h2>
+        {isLoadingInvitations ? (
+          <div className="bg-white shadow rounded-lg p-6">
+            <div className="animate-pulse space-y-3">
+              {[...Array(2)].map((_, i) => (
+                <div key={i} className="h-10 bg-gray-200 rounded" />
+              ))}
+            </div>
+          </div>
+        ) : invitations.length === 0 ? (
+          <div className="bg-white shadow rounded-lg p-6 text-center text-sm text-gray-500">
+            No hay invitaciones pendientes.
+          </div>
+        ) : (
+          <div className="bg-white shadow rounded-lg overflow-hidden">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Correo
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Rol
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Expira
+                  </th>
+                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Acciones
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {invitations.map((inv) => (
+                  <tr key={inv.id} className="hover:bg-gray-50">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      {inv.email}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm">
+                      <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${roleColors[inv.role] || 'bg-gray-100 text-gray-800'}`}>
+                        {roleLabels[inv.role] || inv.role}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      {new Date(inv.expiresAt).toLocaleDateString('es-DO', {
+                        year: 'numeric',
+                        month: 'short',
+                        day: 'numeric',
+                      })}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                      <button
+                        onClick={() => handleRevokeInvitation(inv.id)}
+                        disabled={isRevokingId === inv.id}
+                        className="text-red-600 hover:text-red-900 disabled:opacity-50"
+                      >
+                        {isRevokingId === inv.id ? 'Revocando...' : 'Revocar'}
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
       {/* Edit User Modal */}
       {isEditModalOpen && editingUser && (
         <div className="fixed inset-0 z-50 overflow-y-auto">
@@ -757,6 +966,132 @@ export default function UsersPage() {
                 <button
                   type="button"
                   onClick={handleEditClose}
+                  className="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm"
+                >
+                  Cancelar
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Invite User Modal */}
+      {isInviteModalOpen && (
+        <div className="fixed inset-0 z-50 overflow-y-auto">
+          <div className="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:p-0">
+            {/* Backdrop */}
+            <div
+              className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity"
+              onClick={handleInviteClose}
+            />
+
+            {/* Modal */}
+            <div className="relative bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:max-w-lg sm:w-full">
+              <div className="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+                <h3 className="text-lg font-medium leading-6 text-gray-900 mb-1">
+                  Invitar Usuario
+                </h3>
+                <p className="text-sm text-gray-500 mb-4">
+                  Se enviara un correo con el enlace de registro.
+                </p>
+
+                {inviteSuccess && (
+                  <div className="mb-4 bg-green-50 border border-green-200 rounded-md p-3 text-sm text-green-700">
+                    {inviteSuccess}
+                  </div>
+                )}
+
+                {inviteError && (
+                  <div className="mb-4 bg-red-50 border border-red-200 rounded-md p-3 text-sm text-red-700">
+                    {inviteError}
+                  </div>
+                )}
+
+                <div className="space-y-4">
+                  {/* Email */}
+                  <div>
+                    <label htmlFor="invite-email" className="block text-sm font-medium text-gray-700">
+                      Correo electronico *
+                    </label>
+                    <input
+                      type="email"
+                      id="invite-email"
+                      value={inviteForm.email}
+                      onChange={(e) => setInviteForm({ ...inviteForm, email: e.target.value })}
+                      className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                      placeholder="correo@ejemplo.com"
+                    />
+                  </div>
+
+                  {/* Role */}
+                  <div>
+                    <label htmlFor="invite-role" className="block text-sm font-medium text-gray-700">
+                      Rol *
+                    </label>
+                    <select
+                      id="invite-role"
+                      value={inviteForm.role}
+                      onChange={(e) => setInviteForm({ ...inviteForm, role: e.target.value })}
+                      className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                    >
+                      <option value="">Seleccionar rol...</option>
+                      {roles.map((r) => (
+                        <option key={r.key} value={r.key}>{r.label}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* Store (optional) */}
+                  <div>
+                    <label htmlFor="invite-store" className="block text-sm font-medium text-gray-700">
+                      Tienda <span className="text-gray-400 font-normal">(opcional)</span>
+                    </label>
+                    <select
+                      id="invite-store"
+                      value={inviteForm.storeId}
+                      onChange={(e) => setInviteForm({ ...inviteForm, storeId: e.target.value })}
+                      className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                    >
+                      <option value="">Sin tienda asignada</option>
+                      {stores.map((store) => (
+                        <option key={store.id} value={store.id}>{store.name}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* Department (optional) */}
+                  <div>
+                    <label htmlFor="invite-department" className="block text-sm font-medium text-gray-700">
+                      Departamento <span className="text-gray-400 font-normal">(opcional)</span>
+                    </label>
+                    <select
+                      id="invite-department"
+                      value={inviteForm.departmentId}
+                      onChange={(e) => setInviteForm({ ...inviteForm, departmentId: e.target.value })}
+                      className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                    >
+                      <option value="">Sin departamento asignado</option>
+                      {departments.map((dept) => (
+                        <option key={dept.id} value={dept.id}>{dept.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+                <button
+                  type="button"
+                  onClick={handleSendInvite}
+                  disabled={isInviting || !inviteForm.email || !inviteForm.role}
+                  className="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-blue-600 text-base font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:ml-3 sm:w-auto sm:text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isInviting ? 'Enviando...' : 'Enviar Invitacion'}
+                </button>
+                <button
+                  type="button"
+                  onClick={handleInviteClose}
                   className="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm"
                 >
                   Cancelar

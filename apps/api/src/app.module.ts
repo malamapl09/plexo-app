@@ -27,6 +27,9 @@ import { CampaignsModule } from './modules/campaigns/campaigns.module';
 import { ModuleAccessModule } from './modules/module-access/module-access.module';
 import { RolesModule } from './modules/roles/roles.module';
 import { TrainingModule } from './modules/training/training.module';
+import { EmailModule } from './modules/email/email.module';
+import { PlatformModule } from './modules/platform/platform.module';
+import { InvitationsModule } from './modules/invitations/invitations.module';
 
 @Module({
   imports: [
@@ -53,6 +56,9 @@ import { TrainingModule } from './modules/training/training.module';
     // Storage
     StorageModule,
 
+    // Email
+    EmailModule,
+
     // Feature modules
     AuthModule,
     UsersModule,
@@ -77,6 +83,8 @@ import { TrainingModule } from './modules/training/training.module';
     ModuleAccessModule,
     RolesModule,
     TrainingModule,
+    PlatformModule,
+    InvitationsModule,
   ],
 })
 export class AppModule {}
