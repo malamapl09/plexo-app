@@ -1,0 +1,7 @@
+app.plexoapp.com {
+	reverse_proxy web:3000
+}
+
+api.plexoapp.com {
+	reverse_proxy api:3000
+}
