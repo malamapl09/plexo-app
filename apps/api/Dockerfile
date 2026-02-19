@@ -3,24 +3,27 @@ FROM node:20-alpine AS builder
 
 WORKDIR /app
 
-# Copy package files
-COPY package.json package-lock.json ./
+# Copy database package (Prisma schema + client)
 COPY packages/database/package.json packages/database/
-COPY apps/api/package.json apps/api/
-
-# Install dependencies
-RUN npm ci --workspace=apps/api --workspace=packages/database --include-workspace-root 2>/dev/null || npm ci
-
-# Copy source
 COPY packages/database/ packages/database/
-COPY apps/api/ apps/api/
 
-# Generate Prisma Client
+# Copy API package files
+COPY apps/api/package.json apps/api/package-lock.json apps/api/
+
+# Install database dependencies + generate Prisma Client
 WORKDIR /app/packages/database
+RUN npm install
+
 RUN npx prisma generate
 
-# Build NestJS
+# Install API dependencies
 WORKDIR /app/apps/api
+RUN npm ci
+
+# Copy API source
+COPY apps/api/ .
+
+# Build NestJS
 RUN npm run build
 
 # ---- Production Stage ----
