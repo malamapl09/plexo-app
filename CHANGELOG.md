@@ -14,6 +14,13 @@ All notable changes to Plexo Operations.
 - **IAM role** — EC2 instance profile with S3 and SES permissions (no static credentials)
 - **Swap** — 1GB swap file on EC2 (persistent via `/etc/fstab`)
 
+### Added — Branding
+- **Plexo logo (web)** — SVG logo on login, forgot-password, reset-password pages and sidebar; favicon.svg and favicon.ico
+- **Plexo logo (mobile)** — SVG icon on login page with "Plexo" + "Operaciones" text
+- **App icon** — replaced old Plaza Lama "PL" icon with Plexo 3-node icon on white (iOS + Android, all sizes)
+- **Splash screens** — Plexo icon centered on white for iOS LaunchImage (1x/2x/3x) and Android splash_icon (mdpi through xxxhdpi)
+- **CI/CD** — increased deploy timeout to 20m (web build takes ~11 min on t4g.small)
+
 ### Added — Production Hardening
 - **Amazon SES** — domain identity verified with DKIM (3 CNAME records), SPF (`include:amazonses.com`), DMARC (`quarantine` policy), custom MAIL FROM domain (`mail.plexoapp.com`); production access requested
 - **Zoho Mail** — MX records for `@plexoapp.com` inbox; SPF includes both `zohomail.com` and `amazonses.com`
