@@ -4,8 +4,12 @@ Next.js 14 admin dashboard for HQ, regional management, and platform administrat
 
 ## Requirements
 
-- Node.js 18+
-- API running on port 3001
+- Node.js 20+
+- API running on port 3001 (local dev) or accessible at `NEXT_PUBLIC_API_URL`
+
+## Production
+
+Live at **https://app.plexoapp.com**. The web app runs as a standalone Next.js container behind Caddy (auto-TLS). API calls from the browser go directly to `https://api.plexoapp.com` via `NEXT_PUBLIC_API_URL`.
 
 ## Getting Started
 

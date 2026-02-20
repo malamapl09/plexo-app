@@ -216,9 +216,18 @@ Los siguientes datos provienen de estudios de la industria y casos documentados 
 
 ## Proximos Pasos (Roadmap)
 
-### Fase Actual: Lanzamiento SaaS
-- Desplegar en AWS (EC2 + RDS + S3 + SES)
-- Verificar dominio en SES, configurar DNS
+### Fase Actual: En Produccion
+
+**Completado:**
+- Desplegado en AWS (EC2 t4g.small + RDS PostgreSQL 16 + S3 + SES)
+- DNS configurado en Route 53 (`app.plexoapp.com`, `api.plexoapp.com`)
+- SSL automatico via Caddy/Let's Encrypt
+- CI/CD automatizado — push a `main` despliega automaticamente
+- Backups diarios automaticos (pg_dump a S3, 3 AM)
+- Seed de datos iniciales y usuario admin
+
+**Pendiente:**
+- Verificar dominio en SES (salir de sandbox para envio de emails a cualquier destinatario)
 - Publicar app en App Store y Google Play
 - Onboarding de primeros clientes piloto
 

@@ -72,6 +72,15 @@ plexo-app/
 - JWT payload includes `organizationId` — extracted via `@CurrentUser()` decorator
 - Auth service is intentionally NOT tenant-scoped (cross-org email lookup)
 
+## Production URLs
+
+| Service | URL |
+|---------|-----|
+| Web Dashboard | https://app.plexoapp.com |
+| API | https://api.plexoapp.com |
+| API Health | https://api.plexoapp.com/health |
+| API Docs (dev only) | http://localhost:3001/api/docs |
+
 ## Prerequisites
 
 - Node.js 20+
@@ -180,14 +189,16 @@ cd apps/mobile && open -a Simulator && flutter run
 
 ## Test Credentials (Seed Data)
 
-Password for all: `demo1234`
+Password for all: `admin123`
 
 | Role | Email | Notes |
 |------|-------|-------|
-| Platform Admin | platform@plexoapp.com | Cross-org management |
+| Platform Admin | platform@plexoapp.com | Cross-org management, isPlatformAdmin |
 | Operations Manager | admin@demo.plexoapp.com | Demo org super admin |
-| Store Manager | gerente.duarte@demo.plexoapp.com | Demo store |
-| Dept Supervisor | supervisor.electro@demo.plexoapp.com | Demo department |
+| HQ Team | hq@demo.plexoapp.com | HQ team member |
+| Regional Supervisor | regional@demo.plexoapp.com | Central region supervisor |
+| Store Manager | manager@demo.plexoapp.com | Downtown Flagship store |
+| Dept Supervisor | supervisor@demo.plexoapp.com | Electronics department |
 
 ## Onboarding Flow
 
@@ -265,25 +276,45 @@ PATCH  /api/v1/module-access/:role
 
 ## Production Deployment
 
+Live at **https://app.plexoapp.com** (web) and **https://api.plexoapp.com** (API).
+
 See `docker-compose.prod.yml` for the production setup. Infrastructure:
 
 | Component | Service |
 |-----------|---------|
-| App server | EC2 t4g.small (Docker Compose) |
-| Database | RDS PostgreSQL 16 |
-| Cache | ElastiCache Redis |
-| File storage | S3 |
+| App server | EC2 t4g.small ARM64 (Docker Compose) |
+| Database | RDS PostgreSQL 16 (db.t4g.micro) |
+| Cache | Redis 7 (Docker container on EC2) |
+| Reverse proxy | Caddy 2 (auto-TLS via Let's Encrypt) |
+| File storage | S3 (`plexo-uploads-prod`) |
 | Email | Amazon SES |
-| SSL | Let's Encrypt via Coolify |
-| CI/CD | GitHub Actions → GHCR → EC2 |
+| DNS | Route 53 (`plexoapp.com`) |
+| CI/CD | GitHub Actions → SSH → build on EC2 |
 | Monitoring | Sentry |
-| Backups | Daily pg_dump → S3 (30-day retention) |
+| Backups | Daily pg_dump → S3 (3 AM cron) |
 
-Deploy on push to `main`:
+### CI/CD Pipeline
+
+On push to `main`, GitHub Actions SSHs into EC2 and:
+1. Pulls latest code
+2. Builds API and Web Docker images natively (ARM64)
+3. Runs Prisma migrations
+4. Restarts containers with zero-downtime (`--remove-orphans`)
+
+### Manual Deploy
+
 ```bash
-# Manual deploy
+ssh ec2-user@<EC2_IP>
+cd /opt/plexo/repo && git pull origin main
+docker build -t ghcr.io/malamapl09/plexo-app/api:latest -f apps/api/Dockerfile .
+docker build -t ghcr.io/malamapl09/plexo-app/web:latest \
+  --build-arg NEXT_PUBLIC_API_URL=https://api.plexoapp.com \
+  --build-arg NEXT_PUBLIC_APP_NAME=Plexo \
+  --build-arg NEXT_PUBLIC_APP_LOGO=/logo.png \
+  -f apps/web/Dockerfile .
+cd /opt/plexo
 docker compose -f docker-compose.prod.yml run --rm migrate
-docker compose -f docker-compose.prod.yml up -d
+docker compose -f docker-compose.prod.yml up -d --remove-orphans
 ```
 
 ## Development Commands

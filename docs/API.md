@@ -2,7 +2,8 @@
 
 Multi-tenant SaaS API. Each request is scoped to the user's organization via JWT.
 
-Base URL: `http://localhost:3001/api/v1`
+Base URL (dev): `http://localhost:3001/api/v1`
+Base URL (prod): `https://api.plexoapp.com/api/v1`
 
 Swagger UI: `http://localhost:3001/api/docs` (disabled in production)
 
@@ -1693,27 +1694,27 @@ The seed creates a demo organization with users, stores, tasks, issues, campaign
 
 | Email | Password | Role | Notes |
 |-------|----------|------|-------|
-| `platform@plexoapp.com` | `demo1234` | Platform Admin | Cross-org management |
-| `admin@demo.plexoapp.com` | `demo1234` | OPERATIONS_MANAGER (Super Admin) | Demo org HQ |
-| `gerente.duarte@demo.plexoapp.com` | `demo1234` | STORE_MANAGER | Demo store |
-| `supervisor.electro@demo.plexoapp.com` | `demo1234` | DEPT_SUPERVISOR | Demo department |
+| `platform@plexoapp.com` | `admin123` | OPERATIONS_MANAGER | Platform admin, cross-org management |
+| `admin@demo.plexoapp.com` | `admin123` | OPERATIONS_MANAGER | Demo org super admin |
+| `hq@demo.plexoapp.com` | `admin123` | HQ_TEAM | HQ team member |
+| `regional@demo.plexoapp.com` | `admin123` | REGIONAL_SUPERVISOR | Central region supervisor |
+| `manager@demo.plexoapp.com` | `admin123` | STORE_MANAGER | Downtown Flagship store |
+| `supervisor@demo.plexoapp.com` | `admin123` | DEPT_SUPERVISOR | Electronics department |
 
-### Demo Data Counts
+### Seed Data Counts
 
-| Module | Count |
+| Entity | Count |
 |--------|-------|
-| Users | 13 (5 base + 8 demo) |
-| Receivings | 20 across 5 stores |
-| Issues | 18 across 5 stores |
-| Tasks | 10 with 37+ assignments |
-| Announcements | 6 |
-| Checklists | 3 templates, 6 submissions |
-| Audits | 2 templates, 6 audits |
-| Corrective Actions | 10 |
-| Planograms | 3 templates, 8 submissions |
-| Campaigns | 4 campaigns, 10 submissions |
-| Training | 10 courses, 54 enrollments |
-| Gamification | 9 users with points and badges |
+| Organizations | 1 (Plexo Demo) |
+| Users | 6 |
+| Roles | 5 |
+| Stores | 6 (1 DC + 5 retail) |
+| Regions | 5 |
+| Departments | 7 |
+| Role-Module Access | 75 |
+| Store-Department Mappings | 42 |
+| Point Configs | 9 |
+| Badges | 5 |
 
 ---
 

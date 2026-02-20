@@ -4,6 +4,16 @@ All notable changes to Plexo Operations.
 
 ## [Unreleased]
 
+### Added — Production Deployment (AWS)
+- **AWS Infrastructure** — EC2 t4g.small (ARM64), RDS PostgreSQL 16 (db.t4g.micro), S3 (`plexo-uploads-prod`), Route 53 DNS (`plexoapp.com`)
+- **Docker production stack** — `docker-compose.prod.yml` with API, Web, Redis 7, Caddy 2 (auto-TLS), and migration service
+- **Caddy reverse proxy** — automatic HTTPS via Let's Encrypt for `app.plexoapp.com` and `api.plexoapp.com`
+- **CI/CD pipeline** — `.github/workflows/deploy.yml` builds Docker images natively on EC2 (ARM64) via SSH on push to `main`
+- **Automated backups** — daily 3 AM cron running `pg_dump` to S3 with 30-day retention
+- **Security groups** — EC2 SG (SSH/HTTP/HTTPS), RDS SG (Postgres from EC2 only)
+- **IAM role** — EC2 instance profile with S3 and SES permissions (no static credentials)
+- **Swap** — 1GB swap file on EC2 (persistent via `/etc/fstab`)
+
 ### Added — SaaS Infrastructure
 - **Multi-tenancy** — `Organization` model, `organizationId` on 32 tables, `prisma.forTenant(orgId)` auto-filter via Prisma Client Extensions
 - **Platform Admin module** — `POST/GET/PATCH /platform/organizations`, `GET /platform/stats`; `PlatformAdminGuard` checks `isPlatformAdmin`; organization onboarding creates org + 5 roles + 75 module access rows + admin user + 9 point configs in a single transaction
@@ -13,7 +23,7 @@ All notable changes to Plexo Operations.
 - **S3 Storage** — replaced MinIO client with `@aws-sdk/client-s3`; dual-mode: `STORAGE_MODE=s3` for production (IAM role), `STORAGE_MODE=minio` for local dev (S3-compatible endpoint)
 - **Sentry Monitoring** — `@sentry/nestjs` initialized in `main.ts`, gated by `SENTRY_DSN` env var; Swagger docs disabled in production
 - **CI/CD** — `.github/workflows/deploy.yml` (build → GHCR → SSH deploy to EC2 with migration step), `.github/workflows/test.yml` (lint + build on PRs)
-- **Docker Compose split** — `docker-compose.dev.yml` (Postgres + Redis + MinIO + migrate + seed + API + Web), `docker-compose.prod.yml` (migrate + API + Web, connects to external RDS/ElastiCache/S3)
+- **Docker Compose split** — `docker-compose.dev.yml` (Postgres + Redis + MinIO + migrate + seed + API + Web), `docker-compose.prod.yml` (migrate + API + Web + Redis + Caddy, connects to external RDS/S3)
 - **Backup script** — `scripts/backup.sh` daily pg_dump to S3 with 30-day retention, `.pgpass` for secure auth
 - **Web platform admin pages** — `(platform)/organizations` list/create/detail, `(platform)/stats` dashboard
 - **Web auth pages** — `forgot-password`, `reset-password`, `accept-invite` pages

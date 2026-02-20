@@ -35,7 +35,7 @@ flutter run -d <device_id>
 
 ### Build for Production
 
-Production builds use `--dart-define=ENV=production` to point at the live API:
+Production builds use `--dart-define=ENV=production` to point at the live API (`https://api.plexoapp.com`):
 
 ```bash
 # Android App Bundle (for Play Store)
@@ -48,7 +48,7 @@ flutter build apk --release --dart-define=ENV=production
 flutter build ios --release --dart-define=ENV=production
 ```
 
-Without `--dart-define=ENV=production`, builds default to the development API host.
+Without `--dart-define=ENV=production`, builds default to the development API host (local LAN IP).
 
 ## Project Structure
 
