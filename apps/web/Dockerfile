@@ -12,6 +12,9 @@ RUN npm install
 # Copy source
 COPY apps/web/ .
 
+# Ensure public directory exists
+RUN mkdir -p public
+
 # Build args for Next.js static build
 ARG NEXT_PUBLIC_API_URL
 ARG NEXT_PUBLIC_APP_NAME
