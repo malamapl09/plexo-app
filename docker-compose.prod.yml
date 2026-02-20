@@ -5,16 +5,24 @@
 services:
   migrate:
     image: ghcr.io/malamapl09/plexo-app/api:latest
-    user: root
+    user: node
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER:-plexo}:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}@${RDS_HOST:?Set RDS_HOST}:5432/${POSTGRES_DB:-plexo}?schema=public
     command: npx prisma migrate deploy --schema ./prisma/schema.prisma
+    tmpfs:
+      - /tmp
+    security_opt:
+      - no-new-privileges:true
     restart: "no"
 
   redis:
     image: redis:7-alpine
     restart: unless-stopped
-    command: redis-server --requirepass ${REDIS_PASSWORD}
+    command: redis-server --requirepass ${REDIS_PASSWORD} --maxmemory 128mb --maxmemory-policy allkeys-lru --save "" --appendonly no
+    mem_limit: 192m
+    memswap_limit: 192m
+    security_opt:
+      - no-new-privileges:true
     volumes:
       - redis-data:/data
     logging:
@@ -26,6 +34,13 @@ services:
   api:
     image: ghcr.io/malamapl09/plexo-app/api:latest
     restart: unless-stopped
+    mem_limit: 512m
+    memswap_limit: 640m
+    read_only: true
+    tmpfs:
+      - /tmp
+    security_opt:
+      - no-new-privileges:true
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER:-plexo}:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}@${RDS_HOST:?Set RDS_HOST}:5432/${POSTGRES_DB:-plexo}?schema=public
       JWT_SECRET: ${JWT_SECRET:?Set JWT_SECRET}
@@ -69,6 +84,13 @@ services:
   web:
     image: ghcr.io/malamapl09/plexo-app/web:latest
     restart: unless-stopped
+    mem_limit: 384m
+    memswap_limit: 512m
+    read_only: true
+    tmpfs:
+      - /tmp
+    security_opt:
+      - no-new-privileges:true
     environment:
       HOSTNAME: 0.0.0.0
       NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL}
@@ -94,11 +116,18 @@ services:
   caddy:
     image: caddy:2-alpine
     restart: unless-stopped
+    mem_limit: 64m
+    memswap_limit: 64m
+    read_only: true
+    tmpfs:
+      - /tmp
+    security_opt:
+      - no-new-privileges:true
     ports:
       - "80:80"
       - "443:443"
     volumes:
-      - ./Caddyfile:/etc/caddy/Caddyfile
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
       - caddy-data:/data
       - caddy-config:/config
     depends_on:

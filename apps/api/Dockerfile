@@ -31,6 +31,16 @@ COPY apps/api/ .
 # Build NestJS (type errors from multi-tenant Prisma extension are runtime-safe)
 RUN npm run build || [ -d dist ]
 
+# ---- Production Dependencies ----
+FROM node:20-alpine AS deps
+
+RUN apk add --no-cache openssl
+
+WORKDIR /app
+COPY apps/api/package.json .
+COPY packages/database/package.json packages/database/
+RUN npm install --omit=dev
+
 # ---- Production Stage ----
 FROM node:20-alpine AS production
 
@@ -38,23 +48,18 @@ RUN apk add --no-cache dumb-init openssl
 
 WORKDIR /app
 
-# Copy built output and dependencies (Prisma client is already in api/node_modules)
 COPY --from=builder /app/apps/api/dist ./dist
-COPY --from=builder /app/apps/api/package.json ./
-COPY --from=builder /app/apps/api/node_modules ./node_modules
 COPY --from=builder /app/packages/database/prisma ./prisma
-COPY --from=builder /app/packages/database/node_modules/prisma ./node_modules/prisma
-COPY --from=builder /app/packages/database/node_modules/.bin/prisma ./node_modules/.bin/prisma
+COPY --from=deps /app/node_modules ./node_modules
+COPY --from=builder /app/apps/api/node_modules/.prisma ./node_modules/.prisma
+COPY --from=builder /app/apps/api/package.json ./
 
 ENV NODE_ENV=production
 ENV PORT=3000
 
 EXPOSE 3000
 
-HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
-  CMD wget -qO- http://localhost:3000/health/live || exit 1
-
 USER node
 
 ENTRYPOINT ["dumb-init", "--"]
-CMD ["node", "dist/main"]
+CMD ["node", "--max-old-space-size=384", "dist/main"]
