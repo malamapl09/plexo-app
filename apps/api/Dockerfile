@@ -1,6 +1,8 @@
 # ---- Build Stage ----
 FROM node:20-alpine AS builder
 
+RUN apk add --no-cache openssl
+
 WORKDIR /app
 
 # Copy database package (Prisma schema + client)
@@ -10,21 +12,20 @@ COPY packages/database/ packages/database/
 # Copy API package file
 COPY apps/api/package.json apps/api/
 
-# Install database dependencies + generate Prisma Client
+# Install database dependencies
 WORKDIR /app/packages/database
 RUN npm install
-RUN npx prisma generate
 
 # Install API dependencies
 WORKDIR /app/apps/api
 RUN npm install
 
-# Link the generated Prisma client from database package into API
-RUN rm -rf node_modules/.prisma node_modules/@prisma/client && \
-    cp -r /app/packages/database/node_modules/.prisma node_modules/.prisma && \
-    cp -r /app/packages/database/node_modules/@prisma/client node_modules/@prisma/client
+# Generate Prisma Client (outputs to apps/api/node_modules/.prisma/client per schema)
+WORKDIR /app/packages/database
+RUN npx prisma generate
 
 # Copy API source
+WORKDIR /app/apps/api
 COPY apps/api/ .
 
 # Build NestJS (type errors from multi-tenant Prisma extension are runtime-safe)
@@ -37,7 +38,7 @@ RUN apk add --no-cache dumb-init openssl
 
 WORKDIR /app
 
-# Copy built output and dependencies
+# Copy built output and dependencies (Prisma client is already in api/node_modules)
 COPY --from=builder /app/apps/api/dist ./dist
 COPY --from=builder /app/apps/api/package.json ./
 COPY --from=builder /app/apps/api/node_modules ./node_modules
