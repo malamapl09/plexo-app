@@ -294,10 +294,10 @@ export class PlatformService {
       }),
       // Activity by day (raw SQL)
       this.prisma.$queryRaw<{ date: string; count: number }[]>`
-        SELECT TO_CHAR(created_at, 'YYYY-MM-DD') as date, COUNT(*)::int as count
+        SELECT TO_CHAR("createdAt", 'YYYY-MM-DD') as date, COUNT(*)::int as count
         FROM audit_logs
-        WHERE organization_id = ${orgId} AND created_at >= ${thirtyDaysAgo}
-        GROUP BY TO_CHAR(created_at, 'YYYY-MM-DD')
+        WHERE "organizationId" = ${orgId} AND "createdAt" >= ${thirtyDaysAgo}
+        GROUP BY TO_CHAR("createdAt", 'YYYY-MM-DD')
         ORDER BY date
       `,
       // Recent logins
@@ -318,16 +318,16 @@ export class PlatformService {
   private async _getLastLoginsByOrg(orgIds: string[]): Promise<Map<string, Date>> {
     if (orgIds.length === 0) return new Map();
 
-    const rows = await this.prisma.$queryRaw<{ organization_id: string; last_login: Date }[]>`
-      SELECT DISTINCT ON (organization_id) organization_id, created_at as last_login
+    const rows = await this.prisma.$queryRaw<{ organizationId: string; last_login: Date }[]>`
+      SELECT DISTINCT ON ("organizationId") "organizationId", "createdAt" as last_login
       FROM audit_logs
-      WHERE action = 'LOGIN' AND organization_id = ANY(${orgIds}::uuid[])
-      ORDER BY organization_id, created_at DESC
+      WHERE action = 'LOGIN' AND "organizationId" = ANY(${orgIds}::uuid[])
+      ORDER BY "organizationId", "createdAt" DESC
     `;
 
     const map = new Map<string, Date>();
     for (const row of rows) {
-      map.set(row.organization_id, row.last_login);
+      map.set(row.organizationId, row.last_login);
     }
     return map;
   }
@@ -443,18 +443,18 @@ export class PlatformService {
     ] = await Promise.all([
       this._getLastLoginsByOrg(orgIds),
       // Active users 7d
-      this.prisma.$queryRaw<{ organization_id: string; count: number }[]>`
-        SELECT organization_id, COUNT(DISTINCT performed_by_id)::int as count
+      this.prisma.$queryRaw<{ organizationId: string; count: number }[]>`
+        SELECT "organizationId", COUNT(DISTINCT "performedById")::int as count
         FROM audit_logs
-        WHERE action = 'LOGIN' AND created_at >= ${sevenDaysAgo} AND organization_id = ANY(${orgIds}::uuid[])
-        GROUP BY organization_id
+        WHERE action = 'LOGIN' AND "createdAt" >= ${sevenDaysAgo} AND "organizationId" = ANY(${orgIds}::uuid[])
+        GROUP BY "organizationId"
       `,
       // Active users 30d
-      this.prisma.$queryRaw<{ organization_id: string; count: number }[]>`
-        SELECT organization_id, COUNT(DISTINCT performed_by_id)::int as count
+      this.prisma.$queryRaw<{ organizationId: string; count: number }[]>`
+        SELECT "organizationId", COUNT(DISTINCT "performedById")::int as count
         FROM audit_logs
-        WHERE action = 'LOGIN' AND created_at >= ${thirtyDaysAgo} AND organization_id = ANY(${orgIds}::uuid[])
-        GROUP BY organization_id
+        WHERE action = 'LOGIN' AND "createdAt" >= ${thirtyDaysAgo} AND "organizationId" = ANY(${orgIds}::uuid[])
+        GROUP BY "organizationId"
       `,
       // User counts
       this.prisma.user.groupBy({ by: ['organizationId'], where: { organizationId: { in: orgIds }, isPlatformAdmin: false }, _count: true }),
@@ -476,8 +476,8 @@ export class PlatformService {
 
     const toMap = <T extends { organizationId: string; _count: number }>(rows: T[]) =>
       new Map(rows.map((r) => [r.organizationId, r._count]));
-    const toMapRaw = (rows: { organization_id: string; count: number }[]) =>
-      new Map(rows.map((r) => [r.organization_id, r.count]));
+    const toMapRaw = (rows: { organizationId: string; count: number }[]) =>
+      new Map(rows.map((r) => [r.organizationId, r.count]));
 
     const au7d = toMapRaw(activeUsers7dRows);
     const au30d = toMapRaw(activeUsers30dRows);
