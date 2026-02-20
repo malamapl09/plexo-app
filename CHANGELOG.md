@@ -14,6 +14,15 @@ All notable changes to Plexo Operations.
 - **IAM role** — EC2 instance profile with S3 and SES permissions (no static credentials)
 - **Swap** — 1GB swap file on EC2 (persistent via `/etc/fstab`)
 
+### Added — Production Hardening
+- **Amazon SES** — domain identity verified with DKIM (3 CNAME records), SPF (`include:amazonses.com`), DMARC (`quarantine` policy), custom MAIL FROM domain (`mail.plexoapp.com`); production access requested
+- **Zoho Mail** — MX records for `@plexoapp.com` inbox; SPF includes both `zohomail.com` and `amazonses.com`
+- **Sentry (Web)** — `@sentry/nextjs` with client/server/edge configs, global error boundary, DSN via env var
+- **Firebase (`plexo-ops`)** — new Firebase project replacing old Plaza Lama project; service account mounted in API container for push notifications
+- **CloudWatch alarms** — EC2 CPU > 85%, RDS CPU > 85%, RDS storage < 2GB, RDS connections > 50; all alert via SNS to `admin@plexoapp.com`
+- **Docker log rotation** — `json-file` driver with max-size limits on all containers (API 50MB, Web 20MB, Redis/Caddy 10MB)
+- **UptimeRobot** — external uptime monitoring for API health and web endpoints
+
 ### Added — SaaS Infrastructure
 - **Multi-tenancy** — `Organization` model, `organizationId` on 32 tables, `prisma.forTenant(orgId)` auto-filter via Prisma Client Extensions
 - **Platform Admin module** — `POST/GET/PATCH /platform/organizations`, `GET /platform/stats`; `PlatformAdminGuard` checks `isPlatformAdmin`; organization onboarding creates org + 5 roles + 75 module access rows + admin user + 9 point configs in a single transaction

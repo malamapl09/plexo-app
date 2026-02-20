@@ -225,9 +225,16 @@ Los siguientes datos provienen de estudios de la industria y casos documentados 
 - CI/CD automatizado — push a `main` despliega automaticamente
 - Backups diarios automaticos (pg_dump a S3, 3 AM)
 - Seed de datos iniciales y usuario admin
+- Email transaccional: Amazon SES con DKIM, SPF, DMARC verificados
+- Email corporativo: Zoho Mail para `@plexoapp.com`
+- Monitoreo de errores: Sentry (API + Web)
+- Notificaciones push: Firebase Cloud Messaging (proyecto `plexo-ops`)
+- Alertas de infraestructura: CloudWatch alarms (CPU, storage, conexiones) → email
+- Monitoreo de uptime: UptimeRobot (API health + Web)
+- Rotacion de logs Docker en todos los contenedores
 
 **Pendiente:**
-- Verificar dominio en SES (salir de sandbox para envio de emails a cualquier destinatario)
+- Aprobacion de SES para salir de sandbox (solicitud enviada, esperando revision de AWS)
 - Publicar app en App Store y Google Play
 - Onboarding de primeros clientes piloto
 

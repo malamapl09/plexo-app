@@ -61,7 +61,7 @@ plexo-app/
 | Storage | AWS S3 (prod) / MinIO (dev) |
 | Email | Amazon SES (mock mode for dev) |
 | Push | Firebase Cloud Messaging |
-| Monitoring | Sentry |
+| Monitoring | Sentry + CloudWatch alarms + UptimeRobot |
 | CI/CD | GitHub Actions → GHCR → EC2 |
 
 ## Multi-Tenancy
@@ -262,7 +262,8 @@ PATCH  /api/v1/module-access/:role
 | `AWS_SES_FROM_EMAIL` | SES sender email | (optional) |
 | `AWS_SES_REGION` | SES region | `us-east-1` |
 | `APP_URL` | Frontend URL (for email links) | `http://localhost:3000` |
-| `SENTRY_DSN` | Sentry error tracking | (optional) |
+| `SENTRY_DSN` | Sentry error tracking (API) | (optional) |
+| `FIREBASE_SERVICE_ACCOUNT_PATH` | Path to Firebase service account JSON | (optional) |
 | `CORS_ORIGINS` | Allowed origins (comma-separated) | `http://localhost:3000` |
 | `APP_NAME` | Application name | `Plexo` |
 
@@ -273,6 +274,8 @@ PATCH  /api/v1/module-access/:role
 | `NEXT_PUBLIC_API_URL` | API base URL | `http://localhost:3001` |
 | `NEXT_PUBLIC_APP_NAME` | App display name | `Plexo` |
 | `NEXT_PUBLIC_APP_LOGO` | Logo path | `/logo.png` |
+| `NEXT_PUBLIC_SENTRY_DSN` | Sentry DSN (client-side) | (optional) |
+| `SENTRY_DSN` | Sentry DSN (server-side) | (optional) |
 
 ## Production Deployment
 
@@ -287,10 +290,14 @@ See `docker-compose.prod.yml` for the production setup. Infrastructure:
 | Cache | Redis 7 (Docker container on EC2) |
 | Reverse proxy | Caddy 2 (auto-TLS via Let's Encrypt) |
 | File storage | S3 (`plexo-uploads-prod`) |
-| Email | Amazon SES |
+| Email (transactional) | Amazon SES (DKIM + SPF + DMARC) |
+| Email (inbox) | Zoho Mail (`@plexoapp.com`) |
 | DNS | Route 53 (`plexoapp.com`) |
 | CI/CD | GitHub Actions → SSH → build on EC2 |
-| Monitoring | Sentry |
+| Error tracking | Sentry (API + Web) |
+| Alerting | CloudWatch alarms → SNS → email |
+| Uptime | UptimeRobot (API health + Web) |
+| Push notifications | Firebase Cloud Messaging (`plexo-ops`) |
 | Backups | Daily pg_dump → S3 (3 AM cron) |
 
 ### CI/CD Pipeline
