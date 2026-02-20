@@ -5,6 +5,7 @@ import {
 } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
 import * as crypto from 'crypto';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { EmailService } from '../email/email.service';
 import { CreateOrganizationDto } from './dto/create-organization.dto';
@@ -321,7 +322,7 @@ export class PlatformService {
     const rows = await this.prisma.$queryRaw<{ organizationId: string; last_login: Date }[]>`
       SELECT DISTINCT ON ("organizationId") "organizationId", "createdAt" as last_login
       FROM audit_logs
-      WHERE action = 'LOGIN' AND "organizationId" = ANY(${orgIds}::uuid[])
+      WHERE action = 'LOGIN' AND "organizationId" IN (${Prisma.join(orgIds)})
       ORDER BY "organizationId", "createdAt" DESC
     `;
 
@@ -446,14 +447,14 @@ export class PlatformService {
       this.prisma.$queryRaw<{ organizationId: string; count: number }[]>`
         SELECT "organizationId", COUNT(DISTINCT "performedById")::int as count
         FROM audit_logs
-        WHERE action = 'LOGIN' AND "createdAt" >= ${sevenDaysAgo} AND "organizationId" = ANY(${orgIds}::uuid[])
+        WHERE action = 'LOGIN' AND "createdAt" >= ${sevenDaysAgo} AND "organizationId" IN (${Prisma.join(orgIds)})
         GROUP BY "organizationId"
       `,
       // Active users 30d
       this.prisma.$queryRaw<{ organizationId: string; count: number }[]>`
         SELECT "organizationId", COUNT(DISTINCT "performedById")::int as count
         FROM audit_logs
-        WHERE action = 'LOGIN' AND "createdAt" >= ${thirtyDaysAgo} AND "organizationId" = ANY(${orgIds}::uuid[])
+        WHERE action = 'LOGIN' AND "createdAt" >= ${thirtyDaysAgo} AND "organizationId" IN (${Prisma.join(orgIds)})
         GROUP BY "organizationId"
       `,
       // User counts
