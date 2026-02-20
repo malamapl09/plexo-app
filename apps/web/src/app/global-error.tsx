@@ -1,0 +1,58 @@
+'use client';
+
+import * as Sentry from '@sentry/nextjs';
+import { useEffect } from 'react';
+
+interface GlobalErrorProps {
+  error: Error & { digest?: string };
+  reset: () => void;
+}
+
+// global-error.tsx replaces the root layout when an unhandled error occurs.
+// It must include <html> and <body> tags.
+export default function GlobalError({ error, reset }: GlobalErrorProps) {
+  useEffect(() => {
+    Sentry.captureException(error);
+  }, [error]);
+
+  return (
+    <html lang="en">
+      <body>
+        <div
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            minHeight: '100vh',
+            fontFamily: 'system-ui, sans-serif',
+            padding: '2rem',
+            textAlign: 'center',
+          }}
+        >
+          <h1 style={{ fontSize: '1.5rem', fontWeight: 600, marginBottom: '0.5rem' }}>
+            Something went wrong
+          </h1>
+          <p style={{ color: '#6b7280', marginBottom: '1.5rem', maxWidth: '400px' }}>
+            An unexpected error occurred. The error has been reported and our team
+            has been notified.
+          </p>
+          <button
+            onClick={reset}
+            style={{
+              padding: '0.5rem 1.25rem',
+              backgroundColor: '#111827',
+              color: '#fff',
+              border: 'none',
+              borderRadius: '0.375rem',
+              cursor: 'pointer',
+              fontSize: '0.875rem',
+            }}
+          >
+            Try again
+          </button>
+        </div>
+      </body>
+    </html>
+  );
+}

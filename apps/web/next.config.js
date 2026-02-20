@@ -1,3 +1,6 @@
+// @ts-check
+const { withSentryConfig } = require('@sentry/nextjs');
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
@@ -29,4 +32,9 @@ const nextConfig = {
   },
 };
 
-module.exports = nextConfig;
+module.exports = withSentryConfig(nextConfig, {
+  // Source map upload is disabled — set SENTRY_AUTH_TOKEN to enable.
+  silent: true,
+  disableServerWebpackPlugin: true,
+  disableClientWebpackPlugin: true,
+});

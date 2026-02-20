@@ -17,6 +17,11 @@ services:
     command: redis-server --requirepass ${REDIS_PASSWORD}
     volumes:
       - redis-data:/data
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
 
   api:
     image: ghcr.io/malamapl09/plexo-app/api:latest
@@ -52,6 +57,11 @@ services:
       timeout: 10s
       retries: 3
       start_period: 60s
+    logging:
+      driver: json-file
+      options:
+        max-size: "50m"
+        max-file: "5"
 
   web:
     image: ghcr.io/malamapl09/plexo-app/web:latest
@@ -61,6 +71,8 @@ services:
       NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL}
       NEXT_PUBLIC_APP_NAME: ${NEXT_PUBLIC_APP_NAME:-Plexo}
       NEXT_PUBLIC_APP_LOGO: ${NEXT_PUBLIC_APP_LOGO:-/logo.png}
+      SENTRY_DSN: ${SENTRY_DSN_WEB}
+      NEXT_PUBLIC_SENTRY_DSN: ${SENTRY_DSN_WEB}
     healthcheck:
       test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3000/"]
       interval: 30s
@@ -70,6 +82,11 @@ services:
     depends_on:
       api:
         condition: service_healthy
+    logging:
+      driver: json-file
+      options:
+        max-size: "20m"
+        max-file: "3"
 
   caddy:
     image: caddy:2-alpine
@@ -84,6 +101,11 @@ services:
     depends_on:
       - api
       - web
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
 
 volumes:
   redis-data:
