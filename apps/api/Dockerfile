@@ -16,9 +16,10 @@ RUN npm install
 
 RUN npx prisma generate
 
-# Install API dependencies
+# Install API dependencies and generate Prisma client
 WORKDIR /app/apps/api
 RUN npm install
+RUN npx prisma generate
 
 # Copy API source
 COPY apps/api/ .
