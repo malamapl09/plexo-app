@@ -29,7 +29,7 @@ RUN npm run build || [ -d dist ]
 # ---- Production Stage ----
 FROM node:20-alpine AS production
 
-RUN apk add --no-cache dumb-init
+RUN apk add --no-cache dumb-init openssl
 
 WORKDIR /app
 
