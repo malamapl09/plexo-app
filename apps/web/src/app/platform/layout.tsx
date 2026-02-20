@@ -22,7 +22,7 @@ function StatsIcon({ className }: { className?: string }) {
 
 const navigation = [
   { name: 'Organizaciones', href: '/platform/organizations', icon: OrgIcon },
-  { name: 'Estadisticas', href: '/platform/stats', icon: StatsIcon },
+  { name: 'Estadisticas', href: '/platform', icon: StatsIcon },
 ]
 
 export default function PlatformLayout({
