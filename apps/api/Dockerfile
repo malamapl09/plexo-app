@@ -13,13 +13,16 @@ COPY apps/api/package.json apps/api/
 # Install database dependencies + generate Prisma Client
 WORKDIR /app/packages/database
 RUN npm install
-
 RUN npx prisma generate
 
-# Install API dependencies and generate Prisma client
+# Install API dependencies
 WORKDIR /app/apps/api
 RUN npm install
-RUN npx prisma generate
+
+# Link the generated Prisma client from database package into API
+RUN rm -rf node_modules/.prisma node_modules/@prisma/client && \
+    cp -r /app/packages/database/node_modules/.prisma node_modules/.prisma && \
+    cp -r /app/packages/database/node_modules/@prisma/client node_modules/@prisma/client
 
 # Copy API source
 COPY apps/api/ .
@@ -39,8 +42,6 @@ COPY --from=builder /app/apps/api/dist ./dist
 COPY --from=builder /app/apps/api/package.json ./
 COPY --from=builder /app/apps/api/node_modules ./node_modules
 COPY --from=builder /app/packages/database/prisma ./prisma
-COPY --from=builder /app/packages/database/node_modules/.prisma ./node_modules/.prisma
-COPY --from=builder /app/packages/database/node_modules/@prisma ./node_modules/@prisma
 COPY --from=builder /app/packages/database/node_modules/prisma ./node_modules/prisma
 COPY --from=builder /app/packages/database/node_modules/.bin/prisma ./node_modules/.bin/prisma
 
