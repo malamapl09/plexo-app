@@ -2,6 +2,7 @@ import {
   Injectable,
   NotFoundException,
   ConflictException,
+  ForbiddenException,
 } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
 import { PrismaService } from '../../prisma/prisma.service';
@@ -91,6 +92,7 @@ export class UsersService {
         storeId: filters?.storeId,
         departmentId: filters?.departmentId,
         isActive: filters?.isActive ?? true,
+        isPlatformAdmin: false,
       },
       select: {
         id: true,
@@ -116,8 +118,8 @@ export class UsersService {
   async findOne(orgId: string, id: string) {
     const tp = this.prisma.forTenant(orgId);
 
-    const user = await tp.user.findUnique({
-      where: { id },
+    const user = await tp.user.findFirst({
+      where: { id, isPlatformAdmin: false },
       select: {
         id: true,
         email: true,
@@ -155,7 +157,7 @@ export class UsersService {
   async update(orgId: string, id: string, updateUserDto: UpdateUserDto, performedById: string, performedByRole: string) {
     const tp = this.prisma.forTenant(orgId);
 
-    const existing = await this.findOne(orgId, id);
+    const existing = await this.findOne(orgId, id); // throws NotFoundException if platform admin
 
     // Validate role exists if being updated
     if (updateUserDto.role) {

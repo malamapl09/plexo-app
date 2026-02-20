@@ -5,6 +5,7 @@ import {
   Patch,
   Body,
   Param,
+  Query,
   UseGuards,
 } from '@nestjs/common';
 import {
@@ -62,5 +63,53 @@ export class PlatformController {
   @ApiResponse({ status: 200, description: 'Platform stats' })
   getStats() {
     return this.platformService.getStats();
+  }
+
+  @Get('health')
+  @ApiOperation({ summary: 'Organization health dashboard across all orgs' })
+  @ApiResponse({ status: 200, description: 'Health metrics per org' })
+  getOrganizationHealth() {
+    return this.platformService.getOrganizationHealth();
+  }
+
+  @Get('alerts')
+  @ApiOperation({ summary: 'Platform alerts — inactive orgs, low adoption, upsell' })
+  @ApiResponse({ status: 200, description: 'List of alerts' })
+  getAlerts() {
+    return this.platformService.getAlerts();
+  }
+
+  @Get('benchmarks')
+  @ApiOperation({ summary: 'Cross-org benchmarking metrics' })
+  @ApiResponse({ status: 200, description: 'Benchmark data per org' })
+  getBenchmarks() {
+    return this.platformService.getBenchmarks();
+  }
+
+  @Get('organizations/:id/activity')
+  @ApiOperation({ summary: 'Organization activity timeline (30 days)' })
+  @ApiResponse({ status: 200, description: 'Activity data' })
+  @ApiResponse({ status: 404, description: 'Organization not found' })
+  getOrganizationActivity(@Param('id') id: string) {
+    return this.platformService.getOrganizationActivity(id);
+  }
+
+  @Get('organizations/:id/audit-logs')
+  @ApiOperation({ summary: 'Paginated audit logs for an organization' })
+  @ApiResponse({ status: 200, description: 'Paginated audit logs' })
+  @ApiResponse({ status: 404, description: 'Organization not found' })
+  getOrganizationAuditLogs(
+    @Param('id') id: string,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+    @Query('entityType') entityType?: string,
+    @Query('action') action?: string,
+  ) {
+    return this.platformService.getOrganizationAuditLogs(id, {
+      page: page ? parseInt(page, 10) : undefined,
+      limit: limit ? parseInt(limit, 10) : undefined,
+      entityType,
+      action,
+    });
   }
 }

@@ -53,13 +53,19 @@ apps/web/src/
 │   │   ├── forgot-password/page.tsx    # Forgot password
 │   │   ├── reset-password/page.tsx     # Reset password (token from email)
 │   │   └── accept-invite/page.tsx      # Accept invitation (set name + password)
-│   ├── (platform)/
-│   │   ├── layout.tsx                  # Platform admin layout + guard
-│   │   ├── page.tsx                    # Platform dashboard (stats)
+│   ├── platform/
+│   │   ├── layout.tsx                  # Platform admin layout + guard (5-item sidebar)
+│   │   ├── page.tsx                    # Platform dashboard (7 stats + alerts count)
+│   │   ├── health/page.tsx             # Organization health dashboard (P1)
+│   │   ├── alerts/page.tsx             # Platform alerts — inactive, low adoption, upsell (P4)
+│   │   ├── benchmarks/page.tsx         # Cross-org benchmarking table (P5)
 │   │   └── organizations/
 │   │       ├── page.tsx                # Organization list
 │   │       ├── new/page.tsx            # Create organization
-│   │       └── [id]/page.tsx           # Organization detail + edit
+│   │       └── [id]/
+│   │           ├── page.tsx            # Organization detail + edit
+│   │           ├── activity/page.tsx   # Org activity timeline — bar chart, logins, logs (P3)
+│   │           └── audit-logs/page.tsx # Paginated audit log viewer with filters (P6)
 │   ├── (dashboard)/
 │   │   ├── layout.tsx                  # Sidebar + route protection
 │   │   ├── tasks/                      # Task management
@@ -117,7 +123,24 @@ Auth state is stored in `localStorage`:
 - `refreshToken` — for token refresh
 - `user` — JSON with `id`, `email`, `name`, `role`, `isSuperAdmin`, `isPlatformAdmin`, `organizationId`, `moduleAccess[]`, `storeId`, `storeName`
 
-The dashboard layout checks for `accessToken` on mount and redirects to `/login` if missing.
+### Login Redirect
+After successful login:
+- **Platform admins** (`isPlatformAdmin: true`) → redirected to `/platform/organizations`
+- **All other users** → redirected to `/tasks`
+
+### Dashboard Guard
+The dashboard layout (`(dashboard)/layout.tsx`) checks auth on mount:
+1. If no `accessToken` → redirect to `/login`
+2. If `user` JSON is malformed → clear localStorage, redirect to `/login`
+3. If `isPlatformAdmin` → redirect to `/platform/organizations` (platform admins cannot access tenant pages)
+4. Otherwise → render the tenant dashboard
+
+### Platform Guard
+The platform layout (`platform/layout.tsx`) checks auth on mount:
+1. If no `accessToken` → redirect to `/login`
+2. If NOT `isPlatformAdmin` → redirect to `/tasks` (regular users cannot access platform pages)
+
+**Platform sidebar** (5 items): Organizaciones, Estadisticas (`exact` match), Salud, Alertas, Comparativa. Activity and Audit Logs are sub-pages of org detail (not top-level nav).
 
 ## Navigation & Module Access
 
@@ -134,6 +157,7 @@ const navigation = [
 ```
 
 **Filtering logic:**
+- Platform admins never reach this layout (redirected to `/platform/organizations` before rendering)
 - Items are filtered by the user's `moduleAccess` array from login
 - `isSuperAdmin` users see all items
 - The `_admin` module (Permisos) is only visible to super admins
@@ -161,10 +185,15 @@ Events are broadcast to rooms: `store:{storeId}`, `hq`, `user:{userId}`.
 | `/forgot-password` | auth | Request password reset email |
 | `/reset-password` | auth | Set new password (from email link) |
 | `/accept-invite` | auth | Accept invitation, create account |
-| `/platform` | platform | Platform admin dashboard (stats) |
-| `/platform/organizations` | platform | Organization list (platform admin only) |
+| `/platform` | platform | Platform admin dashboard (7 stats + alerts count + quick actions) |
+| `/platform/organizations` | platform | Organization list (platform admin only) — default landing page for platform admins |
 | `/platform/organizations/new` | platform | Create new organization |
-| `/platform/organizations/[id]` | platform | Organization detail + edit |
+| `/platform/organizations/[id]` | platform | Organization detail + edit (with "Ver Actividad" and "Ver Audit Logs" buttons) |
+| `/platform/organizations/[id]/activity` | platform | Org activity timeline — daily bar chart, recent logins, recent logs (P3) |
+| `/platform/organizations/[id]/audit-logs` | platform | Paginated audit log viewer with entityType/action filters (P6) |
+| `/platform/health` | platform | Organization health dashboard — lastLogin, active users, module adoption, task completion (P1) |
+| `/platform/alerts` | platform | Platform alerts — inactive orgs, low adoption, plan opportunities (P4) |
+| `/platform/benchmarks` | platform | Cross-org benchmarking — sortable task/audit/training/gamification comparison (P5) |
 | `/tasks` | tasks | Daily task assignments |
 | `/tasks/templates` | tasks | Task template management |
 | `/checklists` | checklists | Checklist templates |

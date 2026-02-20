@@ -225,7 +225,19 @@ export default function DashboardLayout({
       router.push('/login')
       return
     }
-    setUser(JSON.parse(storedUser))
+    let parsed: any
+    try {
+      parsed = JSON.parse(storedUser)
+    } catch {
+      localStorage.removeItem('user')
+      router.push('/login')
+      return
+    }
+    if (parsed.isPlatformAdmin) {
+      router.push('/platform/organizations')
+      return
+    }
+    setUser(parsed)
     setToken(accessToken)
   }, [router])
 
@@ -328,19 +340,6 @@ export default function DashboardLayout({
               })}
             </nav>
           </div>
-          {user?.isPlatformAdmin && (
-            <div className="flex-shrink-0 border-t border-primary-800 px-2 py-3">
-              <Link
-                href="/platform/organizations"
-                className="group flex items-center px-2 py-2 text-sm font-medium rounded-md text-primary-100 hover:bg-primary-800"
-              >
-                <svg className="mr-3 flex-shrink-0 h-6 w-6 text-primary-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-                </svg>
-                Plataforma
-              </Link>
-            </div>
-          )}
           <div className="flex-shrink-0 flex border-t border-primary-800 p-4">
             <div className="flex-shrink-0 w-full group block">
               <div className="flex items-center">

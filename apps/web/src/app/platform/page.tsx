@@ -9,6 +9,8 @@ interface PlatformStats {
   totalUsers: number
   totalStores?: number
   newOrgsThisMonth?: number
+  loginsToday?: number
+  tasksCompletedToday?: number
 }
 
 function StatCard({
@@ -50,6 +52,7 @@ function StatCard({
 
 export default function PlatformDashboardPage() {
   const [stats, setStats] = useState<PlatformStats | null>(null)
+  const [alertsCount, setAlertsCount] = useState<number | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -63,17 +66,24 @@ export default function PlatformDashboardPage() {
     try {
       const token = localStorage.getItem('accessToken')
       const baseUrl = process.env.NEXT_PUBLIC_API_URL || ''
+      const headers = { Authorization: `Bearer ${token}` }
 
-      const res = await fetch(`${baseUrl}/api/v1/platform/stats`, {
-        headers: { Authorization: `Bearer ${token}` },
-      })
+      const [statsRes, alertsRes] = await Promise.all([
+        fetch(`${baseUrl}/api/v1/platform/stats`, { headers }),
+        fetch(`${baseUrl}/api/v1/platform/alerts`, { headers }),
+      ])
 
-      if (!res.ok) {
-        throw new Error(`Error ${res.status}`)
+      if (!statsRes.ok) {
+        throw new Error(`Error ${statsRes.status}`)
       }
 
-      const data = await res.json()
+      const data = await statsRes.json()
       setStats(data)
+
+      if (alertsRes.ok) {
+        const alerts = await alertsRes.json()
+        setAlertsCount(Array.isArray(alerts) ? alerts.length : 0)
+      }
     } catch (err) {
       setError('No se pudieron cargar las estadisticas.')
       console.error('Error loading platform stats:', err)
@@ -131,7 +141,7 @@ export default function PlatformDashboardPage() {
       {/* Stat cards */}
       {isLoading ? (
         <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
-          {[1, 2, 3].map((i) => (
+          {[1, 2, 3, 4, 5, 6, 7].map((i) => (
             <div key={i} className="bg-white overflow-hidden shadow rounded-lg animate-pulse">
               <div className="p-5">
                 <div className="flex items-center">
@@ -214,6 +224,34 @@ export default function PlatformDashboardPage() {
               }
             />
           )}
+
+          {typeof stats.loginsToday === 'number' && (
+            <StatCard
+              label="Logins hoy"
+              value={stats.loginsToday}
+              description="Inicios de sesion en todas las organizaciones"
+              colorClass="bg-teal-50"
+              icon={
+                <svg className="h-6 w-6 text-teal-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" />
+                </svg>
+              }
+            />
+          )}
+
+          {typeof stats.tasksCompletedToday === 'number' && (
+            <StatCard
+              label="Tareas completadas hoy"
+              value={stats.tasksCompletedToday}
+              description="Tareas finalizadas en todas las organizaciones"
+              colorClass="bg-emerald-50"
+              icon={
+                <svg className="h-6 w-6 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              }
+            />
+          )}
         </div>
       ) : null}
 
@@ -255,6 +293,52 @@ export default function PlatformDashboardPage() {
             <div className="flex-1 min-w-0">
               <span className="text-sm font-medium text-gray-900">Nueva Organizacion</span>
               <p className="text-xs text-gray-500">Crear un nuevo cliente en la plataforma</p>
+            </div>
+            <svg className="h-5 w-5 text-gray-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+            </svg>
+          </Link>
+
+          <Link
+            href="/platform/alerts"
+            className="relative flex items-center space-x-3 rounded-lg border border-gray-300 bg-white px-6 py-5 shadow-sm hover:border-gray-400 hover:bg-gray-50 focus:outline-none"
+          >
+            <div className="flex-shrink-0">
+              <div className="h-10 w-10 rounded-full bg-yellow-100 flex items-center justify-center">
+                <svg className="h-5 w-5 text-yellow-700" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                </svg>
+              </div>
+            </div>
+            <div className="flex-1 min-w-0">
+              <span className="text-sm font-medium text-gray-900">
+                Alertas{alertsCount != null && alertsCount > 0 && (
+                  <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                    {alertsCount}
+                  </span>
+                )}
+              </span>
+              <p className="text-xs text-gray-500">Organizaciones inactivas, baja adopcion y oportunidades</p>
+            </div>
+            <svg className="h-5 w-5 text-gray-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+            </svg>
+          </Link>
+
+          <Link
+            href="/platform/health"
+            className="relative flex items-center space-x-3 rounded-lg border border-gray-300 bg-white px-6 py-5 shadow-sm hover:border-gray-400 hover:bg-gray-50 focus:outline-none"
+          >
+            <div className="flex-shrink-0">
+              <div className="h-10 w-10 rounded-full bg-red-50 flex items-center justify-center">
+                <svg className="h-5 w-5 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                </svg>
+              </div>
+            </div>
+            <div className="flex-1 min-w-0">
+              <span className="text-sm font-medium text-gray-900">Salud de Organizaciones</span>
+              <p className="text-xs text-gray-500">Actividad, adopcion de modulos y metricas por org</p>
             </div>
             <svg className="h-5 w-5 text-gray-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />

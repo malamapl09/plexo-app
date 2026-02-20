@@ -4,6 +4,24 @@ All notable changes to Plexo Operations.
 
 ## [Unreleased]
 
+### Added — Platform Monitoring (P1–P6)
+- **Enhanced Platform Stats (P2)** — dashboard now shows 7 stats: totalOrgs, activeOrgs, totalUsers, totalStores, newOrgsThisMonth, loginsToday, tasksCompletedToday; plus alerts count quick-action card and health quick-action card
+- **Audit Log Viewer (P6)** — `GET /platform/organizations/:id/audit-logs` paginated endpoint with entityType and action filters; new web page at `/platform/organizations/[id]/audit-logs`
+- **Organization Activity Timeline (P3)** — `GET /platform/organizations/:id/activity` returns recent logs, daily activity counts (30d), and recent logins; new web page with CSS bar chart at `/platform/organizations/[id]/activity`
+- **Alerts & Notifications (P4)** — `GET /platform/alerts` computes on-the-fly: inactive orgs (no login 7d), low adoption (0 tasks+checklists+audits), plan opportunity (free plan + >10 users); new web page at `/platform/alerts`
+- **Organization Health Dashboard (P1)** — `GET /platform/health` returns per-org lastLogin, activeUsers7d/30d, module adoption dots, task completion rate; new web page at `/platform/health`
+- **Cross-Org Benchmarking (P5)** — `GET /platform/benchmarks` compares orgs on task completion, avg audit score, training completion, gamification engagement; sortable table at `/platform/benchmarks`
+- **Platform sidebar** — expanded from 2 to 5 nav items: Organizaciones, Estadisticas, Salud, Alertas, Comparativa
+- **Org detail buttons** — "Ver Actividad" and "Ver Audit Logs" action buttons on `/platform/organizations/[id]`
+
+### Changed — Platform Admin Separation
+- **Login redirect** — platform admins now redirect to `/platform/organizations` instead of `/tasks` after login
+- **Tenant dashboard guard** — platform admins are blocked from accessing any tenant route (`/tasks`, `/users`, etc.) and redirected back to `/platform/organizations`
+- **Sidebar cleanup** — removed "Plataforma" link from tenant dashboard sidebar (platform admins can no longer reach it)
+- **Platform layout** — removed "Volver a la app" back link (platform admins have no tenant dashboard to return to), replaced plain text header with white Plexo logo
+- **API: user isolation** — `GET /users` excludes platform admin users (`isPlatformAdmin: false` filter), `GET /users/:id` and `PATCH /users/:id` reject platform admin IDs with 404 — tenant org admins cannot see or modify the platform admin account
+- **Dashboard JSON.parse guard** — added try/catch around `localStorage.user` parsing for crash recovery
+
 ### Added — Production Deployment (AWS)
 - **AWS Infrastructure** — EC2 t4g.small (ARM64), RDS PostgreSQL 16 (db.t4g.micro), S3 (`plexo-uploads-prod`), Route 53 DNS (`plexoapp.com`)
 - **Docker production stack** — `docker-compose.prod.yml` with API, Web, Redis 7, Caddy 2 (auto-TLS), and migration service

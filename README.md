@@ -45,7 +45,7 @@ plexo-app/
 15. **Module Permissions** — Granular role x module access control (configurable by super admin)
 
 ### Platform (SaaS)
-- **Platform Admin** — Create/manage organizations, assign plans, view cross-org stats
+- **Platform Admin** — Separate dashboard at `/platform/*` for managing organizations, assigning plans, and monitoring client health. Includes org health dashboard, cross-org benchmarks, alerts (inactive/low adoption/upsell), per-org activity timeline, and audit log viewer. Platform admins cannot access the tenant dashboard and are hidden from tenant user lists.
 - **Invitations** — Email-based user onboarding with token-based acceptance
 - **Password Reset** — Forgot/reset password flow via email
 
@@ -193,7 +193,7 @@ Password for all: `admin123`
 
 | Role | Email | Notes |
 |------|-------|-------|
-| Platform Admin | platform@plexoapp.com | Cross-org management, isPlatformAdmin |
+| Platform Admin | platform@plexoapp.com | Platform-only dashboard (`/platform/*`), cannot access tenant modules |
 | Operations Manager | admin@demo.plexoapp.com | Demo org super admin |
 | HQ Team | hq@demo.plexoapp.com | HQ team member |
 | Regional Supervisor | regional@demo.plexoapp.com | Central region supervisor |
@@ -202,10 +202,12 @@ Password for all: `admin123`
 
 ## Onboarding Flow
 
-1. **Plexo platform admin** creates an Organization + first admin user via `/platform/organizations`
-2. Admin user receives welcome email with temporary password
-3. Admin logs in, invites employees via email
-4. Employees receive invitation email, set name + password, start using the app
+1. **Plexo platform admin** logs in → lands on `/platform/organizations` (separate dashboard, no tenant access)
+2. Platform admin creates an Organization + first admin user
+3. Client admin receives welcome email with temporary password
+4. Client admin logs in → lands on `/tasks` (tenant dashboard)
+5. Client admin invites employees via email
+6. Employees receive invitation email, set name + password, start using the app
 
 ## API Overview
 
@@ -223,6 +225,11 @@ GET    /api/v1/platform/organizations
 GET    /api/v1/platform/organizations/:id
 PATCH  /api/v1/platform/organizations/:id
 GET    /api/v1/platform/stats
+GET    /api/v1/platform/health
+GET    /api/v1/platform/alerts
+GET    /api/v1/platform/benchmarks
+GET    /api/v1/platform/organizations/:id/activity
+GET    /api/v1/platform/organizations/:id/audit-logs
 
 # Invitations
 POST   /api/v1/invitations          # Send invite (auth)

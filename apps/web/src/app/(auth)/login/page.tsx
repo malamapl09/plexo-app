@@ -36,7 +36,11 @@ export default function LoginPage() {
       localStorage.setItem('refreshToken', data.refreshToken)
       localStorage.setItem('user', JSON.stringify(data.user))
 
-      router.push('/tasks')
+      if (data.user.isPlatformAdmin) {
+        router.push('/platform/organizations')
+      } else {
+        router.push('/tasks')
+      }
     } catch (err) {
       setError('Error al iniciar sesión. Verifique sus credenciales.')
     } finally {

@@ -180,7 +180,136 @@ Cross-organization statistics.
 {
   "totalOrgs": 5,
   "activeOrgs": 4,
-  "totalUsers": 150
+  "totalUsers": 150,
+  "totalStores": 30,
+  "newOrgsThisMonth": 1,
+  "loginsToday": 12,
+  "tasksCompletedToday": 45
+}
+```
+
+### GET /platform/health
+Organization health metrics across all active orgs. Returns per-org: last login, active users (7d/30d), module adoption (tasks/issues/checklists/audits/training), task completion rate (30d).
+
+**Response:**
+```json
+[
+  {
+    "id": "uuid",
+    "name": "Acme Corp",
+    "slug": "acme-corp",
+    "plan": "pro",
+    "lastLogin": "2026-02-19T14:30:00Z",
+    "activeUsers7d": 8,
+    "activeUsers30d": 12,
+    "totalUsers": 15,
+    "moduleAdoption": {
+      "tasks": true,
+      "issues": true,
+      "checklists": true,
+      "audits": false,
+      "training": false
+    },
+    "taskCompletionRate": 72
+  }
+]
+```
+
+### GET /platform/alerts
+Computed platform alerts — inactive orgs, low adoption, plan upsell opportunities. No persistence — computed on-the-fly.
+
+**Alert types:**
+- `inactive` (warning) — no LOGIN in audit_logs for 7+ days
+- `low_adoption` (info) — org has 0 tasks + 0 checklists + 0 audits (created > 3 days ago)
+- `plan_opportunity` (info) — org on 'free' plan with > 10 users
+
+**Response:**
+```json
+[
+  {
+    "type": "inactive",
+    "severity": "warning",
+    "orgId": "uuid",
+    "orgName": "Acme Corp",
+    "message": "Sin actividad en los ultimos 7 dias"
+  }
+]
+```
+
+### GET /platform/benchmarks
+Cross-org benchmarking metrics for comparison.
+
+**Response:**
+```json
+[
+  {
+    "orgId": "uuid",
+    "orgName": "Acme Corp",
+    "plan": "pro",
+    "totalUsers": 15,
+    "metrics": {
+      "taskCompletionRate": 72,
+      "avgAuditScore": 85,
+      "trainingCompletionRate": 60,
+      "gamificationEngagement": 45
+    }
+  }
+]
+```
+
+### GET /platform/organizations/:id/activity
+Organization activity timeline (last 30 days). Returns recent logs, activity-by-day counts, and recent logins.
+
+**Response:**
+```json
+{
+  "recentLogs": [
+    {
+      "id": "uuid",
+      "action": "COMPLETED",
+      "entityType": "TASK_ASSIGNMENT",
+      "createdAt": "2026-02-19T14:30:00Z",
+      "performedBy": { "id": "uuid", "name": "John", "email": "john@acme.com", "role": "STORE_MANAGER" }
+    }
+  ],
+  "activityByDay": [
+    { "date": "2026-01-21", "count": 15 },
+    { "date": "2026-01-22", "count": 23 }
+  ],
+  "recentLogins": [
+    {
+      "id": "uuid",
+      "createdAt": "2026-02-19T14:30:00Z",
+      "performedBy": { "id": "uuid", "name": "John", "email": "john@acme.com" }
+    }
+  ]
+}
+```
+
+### GET /platform/organizations/:id/audit-logs
+Paginated audit logs for a specific organization.
+
+**Query Parameters:**
+- `page` (number, default: 1)
+- `limit` (number, default: 50, max: 100)
+- `entityType` (string, optional) — filter by AuditEntityType enum
+- `action` (string, optional) — filter by AuditAction enum
+
+**Response:**
+```json
+{
+  "data": [
+    {
+      "id": "uuid",
+      "entityType": "TASK_ASSIGNMENT",
+      "entityId": "uuid",
+      "action": "COMPLETED",
+      "notes": null,
+      "createdAt": "2026-02-19T14:30:00Z",
+      "performedBy": { "id": "uuid", "name": "John", "email": "john@acme.com", "role": "STORE_MANAGER" }
+    }
+  ],
+  "meta": { "page": 1, "limit": 50, "total": 230, "totalPages": 5 }
 }
 ```
 
@@ -240,8 +369,10 @@ Accept an invitation and create an account. **Public endpoint (no auth required)
 
 ## Users
 
+**Note:** Platform admin users (`isPlatformAdmin: true`) are automatically excluded from all tenant user queries. They cannot be listed, viewed, or modified through the tenant Users API. This ensures client organizations never see the Plexo platform admin in their user management.
+
 ### GET /users
-List all users (paginated).
+List all users (paginated). Excludes platform admin accounts.
 
 **Query Parameters:**
 - `page` (number, default: 1)
@@ -1694,7 +1825,7 @@ The seed creates a demo organization with users, stores, tasks, issues, campaign
 
 | Email | Password | Role | Notes |
 |-------|----------|------|-------|
-| `platform@plexoapp.com` | `admin123` | OPERATIONS_MANAGER | Platform admin, cross-org management |
+| `platform@plexoapp.com` | `admin123` | OPERATIONS_MANAGER | Platform admin — redirects to `/platform/*`, hidden from tenant user lists |
 | `admin@demo.plexoapp.com` | `admin123` | OPERATIONS_MANAGER | Demo org super admin |
 | `hq@demo.plexoapp.com` | `admin123` | HQ_TEAM | HQ team member |
 | `regional@demo.plexoapp.com` | `admin123` | REGIONAL_SUPERVISOR | Central region supervisor |

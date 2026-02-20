@@ -14,18 +14,20 @@ Plataforma SaaS multi-tenant para gestion de operaciones en cadenas de tiendas r
 Plexo vende directamente a empresas (B2B). No existe registro publico — los administradores de Plexo crean cada organizacion cliente y entregan acceso al primer usuario administrador. Cada cliente puede tener su propio branding (logo, color, nombre).
 
 **Flujo de onboarding:**
-1. Admin de Plexo crea organizacion + primer usuario admin
-2. Admin del cliente recibe email con credenciales temporales
-3. Admin del cliente invita empleados por email
-4. Empleados aceptan invitacion, establecen password, comienzan a usar la app
+1. Admin de Plexo inicia sesion → accede al panel de plataforma (`/platform/organizations`), completamente separado del dashboard de clientes
+2. Admin de Plexo crea organizacion + primer usuario admin
+3. Admin del cliente recibe email con credenciales temporales
+4. Admin del cliente inicia sesion → accede al dashboard de operaciones (`/tasks`) — no ve al admin de plataforma en su lista de usuarios
+5. Admin del cliente invita empleados por email
+6. Empleados aceptan invitacion, establecen password, comienzan a usar la app
 
 ## Plataforma en Numeros
 
 | Metrica | Valor |
 |---------|-------|
 | Modulos funcionales | 15 |
-| Endpoints de API | 200+ |
-| Paginas web (dashboard) | 42+ |
+| Endpoints de API | 210+ |
+| Paginas web (dashboard) | 47+ |
 | Modulos moviles | 15 |
 | Tablas de base de datos | 48 |
 | Lineas de codigo | 100,000+ |
@@ -70,6 +72,17 @@ Plexo vende directamente a empresas (B2B). No existe registro publico — los ad
 | **Gestion de Usuarios** | Alta/baja de empleados, asignacion a tiendas y roles | Si | - |
 | **Gestion de Tiendas** | Configuracion de tiendas y regiones | Si | - |
 | **Permisos por Modulo** | Control granular de acceso: 5 roles x 15 modulos, configurable por super administrador | Si | Si |
+
+### Monitoreo de Plataforma (Admin Plexo)
+
+| Funcion | Descripcion |
+|---------|-------------|
+| **Dashboard de Salud** | Metricas por organizacion: ultimo login, usuarios activos (7d/30d), adopcion de modulos, tasa de completado de tareas |
+| **Alertas Automaticas** | Deteccion proactiva de organizaciones inactivas (7+ dias sin login), baja adopcion (sin tareas/checklists/auditorias), oportunidades de upgrade |
+| **Comparativa Cross-Org** | Tabla comparativa ordenable: completado de tareas, score de auditorias, completado de capacitacion, engagement de gamificacion |
+| **Timeline de Actividad** | Grafico de actividad diaria (30 dias), logins recientes y log de actividad por organizacion |
+| **Visor de Audit Logs** | Busqueda paginada del historial de auditoria por organizacion con filtros por tipo de entidad y accion |
+| **Estadisticas Expandidas** | 7 metricas en el dashboard: organizaciones, usuarios, tiendas, nuevas orgs del mes, logins hoy, tareas completadas hoy |
 
 ---
 
