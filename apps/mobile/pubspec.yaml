@@ -31,6 +31,7 @@ dependencies:
 
   # UI Components
   cupertino_icons: ^1.0.6
+  flutter_svg: ^2.0.10+1
 
   # Camera & Media
   image_picker: ^1.0.7
@@ -66,15 +67,14 @@ flutter_launcher_icons:
   android: true
   ios: true
   image_path: "assets/icons/app_icon.png"
-  adaptive_icon_background: "#E53935"
+  adaptive_icon_background: "#FFFFFF"
   adaptive_icon_foreground: "assets/icons/app_icon_foreground.png"
 
 flutter:
   uses-material-design: true
 
-  # assets:
-  #   - assets/images/
-  #   - assets/icons/
+  assets:
+    - assets/
 
   # fonts:
   #   - family: Poppins

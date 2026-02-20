@@ -119,12 +119,12 @@ services:
       args:
         NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:3001}
         NEXT_PUBLIC_APP_NAME: ${NEXT_PUBLIC_APP_NAME:-Plexo}
-        NEXT_PUBLIC_APP_LOGO: ${NEXT_PUBLIC_APP_LOGO:-/logo.png}
+        NEXT_PUBLIC_APP_LOGO: ${NEXT_PUBLIC_APP_LOGO:-/logo.svg}
     restart: unless-stopped
     environment:
       NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:3001}
       NEXT_PUBLIC_APP_NAME: ${NEXT_PUBLIC_APP_NAME:-Plexo}
-      NEXT_PUBLIC_APP_LOGO: ${NEXT_PUBLIC_APP_LOGO:-/logo.png}
+      NEXT_PUBLIC_APP_LOGO: ${NEXT_PUBLIC_APP_LOGO:-/logo.svg}
     ports:
       - "3000:3000"
     depends_on:

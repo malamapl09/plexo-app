@@ -273,7 +273,7 @@ PATCH  /api/v1/module-access/:role
 |----------|-------------|---------|
 | `NEXT_PUBLIC_API_URL` | API base URL | `http://localhost:3001` |
 | `NEXT_PUBLIC_APP_NAME` | App display name | `Plexo` |
-| `NEXT_PUBLIC_APP_LOGO` | Logo path | `/logo.png` |
+| `NEXT_PUBLIC_APP_LOGO` | Logo path | `/logo.svg` |
 | `NEXT_PUBLIC_SENTRY_DSN` | Sentry DSN (client-side) | (optional) |
 | `SENTRY_DSN` | Sentry DSN (server-side) | (optional) |
 
@@ -317,7 +317,7 @@ docker build -t ghcr.io/malamapl09/plexo-app/api:latest -f apps/api/Dockerfile .
 docker build -t ghcr.io/malamapl09/plexo-app/web:latest \
   --build-arg NEXT_PUBLIC_API_URL=https://api.plexoapp.com \
   --build-arg NEXT_PUBLIC_APP_NAME=Plexo \
-  --build-arg NEXT_PUBLIC_APP_LOGO=/logo.png \
+  --build-arg NEXT_PUBLIC_APP_LOGO=/logo.svg \
   -f apps/web/Dockerfile .
 cd /opt/plexo
 docker compose -f docker-compose.prod.yml run --rm migrate

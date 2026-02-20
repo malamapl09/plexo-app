@@ -1,0 +1,11 @@
+<svg width="180" height="44" viewBox="0 0 180 44" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Geometric icon: interlocking nodes -->
+  <circle cx="15" cy="14" r="5.5" fill="#4F46E5"/>
+  <circle cx="31" cy="14" r="5.5" fill="#7C3AED"/>
+  <circle cx="23" cy="28" r="5.5" fill="#10B981"/>
+  <line x1="18.5" y1="16" x2="27.5" y2="16" stroke="#4F46E5" stroke-width="2.5" stroke-linecap="round"/>
+  <line x1="17" y1="18.5" x2="21" y2="25" stroke="#4F46E5" stroke-width="2.5" stroke-linecap="round"/>
+  <line x1="29" y1="18.5" x2="25" y2="25" stroke="#7C3AED" stroke-width="2.5" stroke-linecap="round"/>
+  <!-- Plexo wordmark -->
+  <text x="46" y="30" font-family="Inter, system-ui, sans-serif" font-weight="800" font-size="28" fill="#0F172A">Plexo</text>
+</svg>

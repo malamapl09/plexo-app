@@ -287,7 +287,7 @@ export default function DashboardLayout({
         <div className="flex flex-col flex-grow pt-5 bg-primary-900 overflow-y-auto">
           <div className="flex items-center flex-shrink-0 px-4">
             <Image
-              src={process.env.NEXT_PUBLIC_APP_LOGO || "/logo.png"}
+              src={process.env.NEXT_PUBLIC_APP_LOGO || "/logo.svg"}
               alt={process.env.NEXT_PUBLIC_APP_NAME || "Plexo"}
               width={160}
               height={44}

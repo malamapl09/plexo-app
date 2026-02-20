@@ -27,7 +27,7 @@ Create `.env.local` or set in environment:
 |----------|-------------|---------|
 | `NEXT_PUBLIC_API_URL` | API base URL | `http://localhost:3001` |
 | `NEXT_PUBLIC_APP_NAME` | App display name | `Plexo` |
-| `NEXT_PUBLIC_APP_LOGO` | Logo path | `/logo.png` |
+| `NEXT_PUBLIC_APP_LOGO` | Logo path | `/logo.svg` |
 
 ## Tech Stack
 

@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
 import 'package:plexo_ops/core/theme/app_colors.dart';
+import 'package:plexo_ops/core/theme/app_theme.dart';
 import 'package:plexo_ops/shared/providers/auth_provider.dart';
 
 class LoginPage extends ConsumerStatefulWidget {
@@ -53,21 +55,17 @@ class _LoginPageState extends ConsumerState<LoginPage> {
               children: [
                 const SizedBox(height: 60),
 
-                // Logo placeholder
-                Container(
-                  height: 100,
-                  width: 100,
-                  alignment: Alignment.center,
-                  child: Icon(
-                    Icons.store,
-                    size: 80,
-                    color: colorScheme.primary,
+                // Logo
+                Center(
+                  child: SvgPicture.asset(
+                    'assets/icon.svg',
+                    width: 72,
+                    height: 72,
                   ),
                 ),
 
-                const SizedBox(height: 24),
+                const SizedBox(height: 16),
 
-                // Title
                 Text(
                   'Plexo',
                   textAlign: TextAlign.center,
@@ -77,7 +75,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                       ),
                 ),
 
-                const SizedBox(height: 8),
+                const SizedBox(height: 4),
 
                 Text(
                   'Operaciones',

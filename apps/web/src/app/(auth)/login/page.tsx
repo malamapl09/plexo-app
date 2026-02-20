@@ -50,7 +50,7 @@ export default function LoginPage() {
         <div>
           <div className="mx-auto flex justify-center">
             <Image
-              src={process.env.NEXT_PUBLIC_APP_LOGO || "/logo.png"}
+              src={process.env.NEXT_PUBLIC_APP_LOGO || "/logo.svg"}
               alt={process.env.NEXT_PUBLIC_APP_NAME || "Plexo"}
               width={240}
               height={66}
