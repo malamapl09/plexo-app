@@ -40,6 +40,8 @@ COPY --from=builder /app/apps/api/node_modules ./node_modules
 COPY --from=builder /app/packages/database/prisma ./prisma
 COPY --from=builder /app/packages/database/node_modules/.prisma ./node_modules/.prisma
 COPY --from=builder /app/packages/database/node_modules/@prisma ./node_modules/@prisma
+COPY --from=builder /app/packages/database/node_modules/prisma ./node_modules/prisma
+COPY --from=builder /app/packages/database/node_modules/.bin/prisma ./node_modules/.bin/prisma
 
 ENV NODE_ENV=production
 ENV PORT=3000

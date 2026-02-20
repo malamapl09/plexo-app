@@ -7,10 +7,10 @@ version: '3.8'
 services:
   migrate:
     image: ghcr.io/malamapl09/plexo-app/api:latest
+    user: root
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER:-plexo}:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}@${RDS_HOST:?Set RDS_HOST}:5432/${POSTGRES_DB:-plexo}?schema=public
-    working_dir: /app/packages/database
-    command: npx prisma migrate deploy
+    command: npx prisma migrate deploy --schema ./prisma/schema.prisma
     restart: "no"
 
   redis:
