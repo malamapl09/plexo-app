@@ -183,6 +183,7 @@ export class TasksService {
         assignments: {
           create: targetStoreIds.map((storeId) => ({
             storeId,
+            organizationId: orgId,
             status: 'PENDING' as PrismaTaskStatus,
           })),
         },
@@ -207,8 +208,12 @@ export class TasksService {
 
     const formattedTask = this.formatTaskResponse(task);
 
-    // Emit WebSocket event
-    this.eventsGateway.emitTaskCreated(formattedTask, targetStoreIds);
+    // Emit WebSocket event (non-critical)
+    try {
+      this.eventsGateway.emitTaskCreated(formattedTask, targetStoreIds);
+    } catch (e) {
+      // WebSocket failures should not prevent task creation
+    }
 
     // Audit log
     await this.auditService.log(orgId, {

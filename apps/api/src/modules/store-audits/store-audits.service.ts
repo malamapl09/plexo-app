@@ -239,10 +239,14 @@ export class StoreAuditsService {
       notes: `Scheduled audit for ${store.name} on ${dto.scheduledDate}`,
     });
 
-    // Emit WebSocket event
-    this.eventsGateway.emitToStore(dto.storeId, 'audit:scheduled', this.mapAuditToResponse(audit));
-    this.eventsGateway.emitToHQ('audit:scheduled', this.mapAuditToResponse(audit));
-    this.eventsGateway.emitToUser(auditorId, 'audit:assigned_to_me', this.mapAuditToResponse(audit));
+    // Emit WebSocket event (non-critical, don't let failures block the response)
+    try {
+      this.eventsGateway.emitToStore(dto.storeId, 'audit:scheduled', this.mapAuditToResponse(audit));
+      this.eventsGateway.emitToHQ('audit:scheduled', this.mapAuditToResponse(audit));
+      this.eventsGateway.emitToUser(auditorId, 'audit:assigned_to_me', this.mapAuditToResponse(audit));
+    } catch (e) {
+      // WebSocket failures should not prevent audit creation
+    }
 
     return this.mapAuditToResponse(audit);
   }
