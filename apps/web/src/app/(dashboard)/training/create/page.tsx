@@ -319,13 +319,13 @@ export default function CreateTrainingCoursePage() {
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Error al crear el curso');
+        const errorData = await response.json().catch(() => null);
+        throw new Error(errorData?.message || 'Error al crear el curso');
       }
 
       router.push('/training');
-    } catch (err: any) {
-      setError(err.message || 'Error al crear el curso');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Error al crear el curso');
     } finally {
       setIsSubmitting(false);
     }

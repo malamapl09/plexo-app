@@ -170,10 +170,10 @@ export default function OrganizationDetailPage() {
         body: JSON.stringify(payload),
       })
 
-      const data = await res.json()
+      const data = await res.json().catch(() => null)
 
       if (!res.ok) {
-        setSaveError(data.message || `Error al actualizar (${res.status}).`)
+        setSaveError(data?.message || `Error al actualizar (${res.status}).`)
         return
       }
 

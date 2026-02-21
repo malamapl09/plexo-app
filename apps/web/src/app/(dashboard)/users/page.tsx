@@ -283,10 +283,10 @@ export default function UsersPage() {
         }),
       })
 
-      const data = await response.json()
+      const data = await response.json().catch(() => null)
 
       if (!response.ok) {
-        throw new Error(data.message || 'Error enviando invitacion')
+        throw new Error(data?.message || 'Error enviando invitacion')
       }
 
       setInviteSuccess(`Invitacion enviada a ${inviteForm.email}`)
@@ -369,8 +369,8 @@ export default function UsersPage() {
       })
 
       if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.message || 'Error actualizando usuario')
+        const errorData = await response.json().catch(() => null)
+        throw new Error(errorData?.message || 'Error actualizando usuario')
       }
 
       await loadUsers()
@@ -457,8 +457,8 @@ export default function UsersPage() {
       })
 
       if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.message || 'Error creando usuario')
+        const errorData = await response.json().catch(() => null)
+        throw new Error(errorData?.message || 'Error creando usuario')
       }
 
       await loadUsers()

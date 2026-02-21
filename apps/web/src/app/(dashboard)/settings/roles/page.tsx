@@ -124,8 +124,8 @@ export default function RolesPage() {
       })
 
       if (!res.ok) {
-        const err = await res.json()
-        throw new Error(err.message || 'Error creando rol')
+        const err = await res.json().catch(() => null)
+        throw new Error(err?.message || 'Error creando rol')
       }
 
       await loadRoles()
@@ -175,8 +175,8 @@ export default function RolesPage() {
       })
 
       if (!res.ok) {
-        const err = await res.json()
-        throw new Error(err.message || 'Error actualizando rol')
+        const err = await res.json().catch(() => null)
+        throw new Error(err?.message || 'Error actualizando rol')
       }
 
       await loadRoles()
@@ -201,8 +201,8 @@ export default function RolesPage() {
       })
 
       if (!res.ok) {
-        const err = await res.json()
-        throw new Error(err.message || 'Error desactivando rol')
+        const err = await res.json().catch(() => null)
+        throw new Error(err?.message || 'Error desactivando rol')
       }
 
       await loadRoles()

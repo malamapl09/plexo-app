@@ -53,8 +53,8 @@ function ResetPasswordForm() {
 
       setSuccess(true)
       setTimeout(() => router.push('/login'), 3000)
-    } catch (err: any) {
-      setError(err.message || 'Error al restablecer la contraseña. El enlace puede haber expirado.')
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Error al restablecer la contraseña. El enlace puede haber expirado.')
     } finally {
       setIsLoading(false)
     }

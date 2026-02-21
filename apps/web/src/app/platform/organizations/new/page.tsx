@@ -84,10 +84,10 @@ export default function NewOrganizationPage() {
         body: JSON.stringify(payload),
       })
 
-      const data = await res.json()
+      const data = await res.json().catch(() => null)
 
       if (!res.ok) {
-        setError(data.message || 'Error al crear la organizacion')
+        setError(data?.message || 'Error al crear la organizacion')
         return
       }
 
