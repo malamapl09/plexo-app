@@ -17,7 +17,7 @@ interface LogtailPayload {
 @Injectable()
 export class BetterStackLogger extends ConsoleLogger {
   private readonly token: string | undefined;
-  private readonly endpoint = 'https://in.logs.betterstack.com';
+  private readonly endpoint: string;
   private buffer: LogtailPayload[] = [];
   private flushTimer: ReturnType<typeof setInterval> | null = null;
   private readonly flushIntervalMs = 2000;
@@ -26,6 +26,8 @@ export class BetterStackLogger extends ConsoleLogger {
   constructor(private configService: ConfigService) {
     super();
     this.token = this.configService.get<string>('BETTERSTACK_LOGS_TOKEN');
+    this.endpoint = this.configService.get<string>('BETTERSTACK_LOGS_ENDPOINT')
+      || 'https://in.logs.betterstack.com';
 
     if (this.token) {
       this.flushTimer = setInterval(() => this.flush(), this.flushIntervalMs);
