@@ -28,3 +28,8 @@ api.plexoapp.com {
 
 	reverse_proxy api:3000
 }
+
+# Better Stack status page — CNAME status.plexoapp.com to your Better Stack status page URL
+status.plexoapp.com {
+	redir https://{$BETTERSTACK_STATUS_SUBDOMAIN:plexo}.betteruptime.com{uri} permanent
+}

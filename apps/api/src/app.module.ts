@@ -30,6 +30,8 @@ import { TrainingModule } from './modules/training/training.module';
 import { EmailModule } from './modules/email/email.module';
 import { PlatformModule } from './modules/platform/platform.module';
 import { InvitationsModule } from './modules/invitations/invitations.module';
+import { LoggerModule } from './common/logger/logger.module';
+import { MonitoringModule } from './common/monitoring/monitoring.module';
 
 @Module({
   imports: [
@@ -49,6 +51,10 @@ import { InvitationsModule } from './modules/invitations/invitations.module';
 
     // Scheduling (cron jobs)
     ScheduleModule.forRoot(),
+
+    // Logging & Monitoring
+    LoggerModule,
+    MonitoringModule,
 
     // Database
     PrismaModule,

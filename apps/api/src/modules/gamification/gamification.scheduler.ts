@@ -3,6 +3,7 @@ import { Cron } from '@nestjs/schedule';
 import { PrismaService } from '../../prisma/prisma.service';
 import { GamificationService } from './gamification.service';
 import { StoresService } from '../stores/stores.service';
+import { HeartbeatService } from '../../common/monitoring/heartbeat.service';
 
 @Injectable()
 export class GamificationScheduler {
@@ -14,6 +15,7 @@ export class GamificationScheduler {
     private prisma: PrismaService,
     private gamificationService: GamificationService,
     private storesService: StoresService,
+    private heartbeat: HeartbeatService,
   ) {}
 
   // Reset weekly points every Monday at midnight
@@ -44,6 +46,7 @@ export class GamificationScheduler {
       this.logger.log(
         `Weekly points reset completed. Users: ${userResult.count}, Stores: ${storeResult.count}, Departments: ${deptResult.count}`,
       );
+      await this.heartbeat.ping('weeklyPointsReset');
     } catch (error) {
       this.logger.error(
         `Error resetting weekly points: ${error.message}`,
@@ -80,6 +83,7 @@ export class GamificationScheduler {
       this.logger.log(
         `Monthly points reset completed. Users: ${userResult.count}, Stores: ${storeResult.count}, Departments: ${deptResult.count}`,
       );
+      await this.heartbeat.ping('monthlyPointsReset');
     } catch (error) {
       this.logger.error(
         `Error resetting monthly points: ${error.message}`,
@@ -119,6 +123,7 @@ export class GamificationScheduler {
       this.logger.log(
         `Daily compliance calculation completed. Updated ${updated}/${activeStores.length} stores.`,
       );
+      await this.heartbeat.ping('dailyCompliance');
     } catch (error) {
       this.logger.error(
         `Error calculating daily compliance: ${error.message}`,
@@ -263,6 +268,7 @@ export class GamificationScheduler {
       this.logger.log(
         `Employee count sync completed. Stores: ${storesSynced}, Tiers updated: ${tiersUpdated}, Departments: ${deptsSynced}`,
       );
+      await this.heartbeat.ping('dailyEmployeeSync');
     } catch (error) {
       this.logger.error(
         `Error syncing employee counts: ${error.message}`,

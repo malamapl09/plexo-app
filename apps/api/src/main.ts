@@ -13,9 +13,14 @@ import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { AppModule } from './app.module';
+import { BetterStackLogger } from './common/logger/betterstack-logger.service';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create(AppModule, { bufferLogs: true });
+
+  // Use Better Stack logger as the global app logger
+  const logger = app.get(BetterStackLogger);
+  app.useLogger(logger);
 
   // Global prefix (exclude health endpoints for Docker health checks)
   app.setGlobalPrefix('api/v1', {

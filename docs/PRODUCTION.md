@@ -90,6 +90,52 @@ Run `scripts/ec2-tune.sh` once after provisioning a new instance:
 
 After running, reboot for `limits.conf` changes to take effect.
 
+## Monitoring — Better Stack
+
+Better Stack replaces UptimeRobot and adds structured logging + cron heartbeats.
+
+### Components
+
+| Feature | What it does | Config |
+|---------|-------------|--------|
+| **Uptime monitors** | HTTP checks on `/health` (API) and `/` (Web) | Create in Better Stack dashboard |
+| **Structured logging** | All NestJS logs shipped to Logtail in real-time | `BETTERSTACK_LOGS_TOKEN` env var |
+| **Cron heartbeats** | Pings after each scheduled job completes; alerts if a job stops running | 4 `BETTERSTACK_HEARTBEAT_*` env vars |
+| **Status page** | Public status at `status.plexoapp.com` | CNAME + Caddy redirect |
+
+### Setup steps
+
+1. **Logs source** — In Better Stack → Telemetry → Sources, create a Node.js source. Copy the token to `BETTERSTACK_LOGS_TOKEN` in the EC2 `.env`.
+
+2. **Uptime monitors** — Create HTTP monitors for:
+   - `https://api.plexoapp.com/health` (expect `"status":"ok"`)
+   - `https://app.plexoapp.com` (expect HTTP 200)
+
+3. **Heartbeat monitors** — Create 4 heartbeats with these periods:
+   | Heartbeat | Period | Env var |
+   |-----------|--------|---------|
+   | Weekly points reset | 7 days + grace | `BETTERSTACK_HEARTBEAT_WEEKLY_RESET` |
+   | Monthly points reset | 31 days + grace | `BETTERSTACK_HEARTBEAT_MONTHLY_RESET` |
+   | Daily compliance | 24 hours + grace | `BETTERSTACK_HEARTBEAT_DAILY_COMPLIANCE` |
+   | Daily employee sync | 24 hours + grace | `BETTERSTACK_HEARTBEAT_DAILY_SYNC` |
+
+4. **Status page** — Create a status page in Better Stack, then:
+   - Add a DNS CNAME: `status.plexoapp.com` → `<your-slug>.betteruptime.com`
+   - Set `BETTERSTACK_STATUS_SUBDOMAIN=<your-slug>` in the EC2 `.env` (used by Caddy)
+
+### Architecture
+
+```
+NestJS Logger ──(HTTP batch)──→ Better Stack Logtail
+Cron Jobs ──(GET heartbeat URL)──→ Better Stack Uptime
+Better Stack Uptime ──(HTTP probe)──→ /health, /health/live
+status.plexoapp.com ──(Caddy redirect)──→ Better Stack Status Page
+```
+
+The logger (`BetterStackLogger`) extends NestJS `ConsoleLogger` — all existing `Logger` calls automatically ship to Logtail when the token is set. Logs are buffered (2s / 50 entries) and sent via native `fetch`. If the token is not set, it behaves as a normal console logger.
+
+Heartbeat pings fire only on successful cron completion. If a job throws, no ping is sent, and Better Stack alerts after the grace period.
+
 ## Verification Checklist
 
 After deploying, verify:
@@ -109,6 +155,9 @@ curl -sI https://app.plexoapp.com/_next/static/chunks/main.js | grep -i cache-co
 
 # All containers healthy
 docker compose -f docker-compose.prod.yml ps
+
+# Better Stack logging working (check for recent logs in dashboard)
+docker compose -f docker-compose.prod.yml logs api --tail 5 | grep -i "betterstack\|logtail"
 
 # OS tuning applied (after running ec2-tune.sh)
 swapon --show
